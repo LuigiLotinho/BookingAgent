@@ -1,0 +1,199 @@
+---
+description: Unified Cursor rules for the AI Booking Assistant project, including instruction folder precedence.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# AI Booking Assistant – Cursor Project Rules
+
+## 0. Instruction Folder Priority (Very Important)
+This project contains an `instructions/` folder.
+
+Rules in the `instructions/` folder:
+- MUST always be followed.
+- Take precedence over all other Cursor rules.
+- Override any conflicting guidance in this file.
+- Are considered the highest authority for behavior, architecture, or implementation details.
+
+If instructions in this file conflict with instructions in the `instructions/` folder:
+→ Always follow the `instructions/` folder.
+
+Cursor must always check the `instructions/` folder before generating or modifying code.
+
+---
+
+## 1. Project Overview
+This project is an AI-powered booking assistant for a music band.
+The system automatically discovers relevant festivals, evaluates them, and sends booking applications after explicit approval by the band.
+
+Version 1 focuses on:
+- A single band
+- Automated festival discovery and updating
+- Automated application drafting and sending (email only)
+- Human approval via relevance checkboxes
+- Multilingual support (DE, EN, FR, ES)
+
+Future versions may support multiple bands, browser extensions, and web-form submissions.
+
+Always respect decisions defined in the PRD and frontend specification.
+
+---
+
+## 2. Core Principles
+- Clarity over cleverness
+- Trust and transparency over automation speed
+- UX decisions are first-class citizens
+- Explicit approval is required before any application is sent
+- The frontend is a control panel, not the system brain
+
+Never assume user intent.
+Never auto-send applications without relevance approval.
+
+---
+
+## 3. Frontend Rules (v0 → Cursor)
+- Frontend is built with React / Next.js using TypeScript.
+- Use functional components only (no class components).
+- Components must be primarily presentational.
+- Business logic must not live inside UI components.
+- All external communication goes through a dedicated service layer.
+- No direct fetch() or API calls inside components.
+
+Styling:
+- Prefer Tailwind CSS utility classes.
+- Avoid inline styles unless unavoidable.
+
+State:
+- Local UI state stays in components.
+- Server state should be abstracted and reusable.
+
+---
+
+## 4. Backend & Agent Architecture
+- Scraping logic must be isolated in dedicated services.
+- AI logic (classification, scoring, text generation) must not be mixed with HTTP controllers.
+- Background jobs (scraping, updates, scheduled checks) must be handled via workers or cron jobs.
+- Agents must be idempotent and safe to re-run.
+
+Error handling:
+- Never silently swallow errors.
+- All failures must be logged with context.
+- Failed applications must be visible to the user.
+
+Security:
+- Credentials (email, API keys) must never appear in frontend code.
+- Sensitive configuration must be environment-based.
+
+---
+
+## 5. Festival Discovery & Relevance
+- Festivals are discovered automatically without human input.
+- Only festivals within 500 km of Karlsruhe are considered.
+- Supported genres include:
+  - Cumbia
+  - Reggae
+  - World Music
+  - Latino
+  - Related terms (e.g. Global, Tropical, Afro-Latin, Mestizo)
+
+Festival size categories:
+- 0–500
+- 500–2,000
+- 2,000–5,000
+- 5,000–20,000
+- 20,000+
+
+If visitor numbers are unknown, estimate and mark as “estimated”.
+
+If no contact method is found, clearly label as “no contact found”.
+
+---
+
+## 6. Similar Band Feature (Optional)
+- This feature must be explicitly enabled by the user.
+- It identifies festivals where similar bands have played in previous years.
+- Results must be marked as “similar-band source”.
+- This feature must never override explicit user approval logic.
+
+---
+
+## 7. Application Logic
+- Applications are only created for festivals marked as relevant.
+- One application per festival per year.
+- Supported application types in V1:
+  - Email only
+
+Application behavior:
+- Draft first
+- Then send automatically
+- User must be able to view the exact content that was sent
+
+No automated response handling.
+No contract or fee negotiation.
+
+---
+
+## 8. AI Prompt Behavior
+- Generated texts must respect:
+  - Selected language
+  - Available band materials
+  - Festival size and context
+
+Tone rules:
+- Small festivals → concise and friendly
+- Large festivals → formal and structured
+
+Always include:
+- Festival name
+- Festival dates
+- Festival location
+- Band name
+
+Never hallucinate contacts, deadlines, or requirements.
+
+---
+
+## 9. UX & Interaction Rules
+- Relevance checkboxes are explicit permission.
+- Status indicators must be visible at all times.
+- The user must always understand:
+  - Why a festival was found
+  - Why it is considered relevant
+  - What has been sent and when
+
+Status states must include:
+- New
+- Approved
+- Ignored
+- Drafted
+- Sent
+- Error
+
+---
+
+## 10. Notifications & Limits
+- Notify the user when:
+  - A new festival is found
+  - An application is sent
+  - An error occurs
+
+Safety limits:
+- Maximum applications per day
+- Maximum applications per month
+
+These limits must be configurable.
+
+---
+
+## 11. Development Rules for Cursor AI
+- Prefer explicit, maintainable code over abstractions.
+- Do not introduce frameworks unless necessary.
+- Refactor generated code when complexity increases.
+- Explain non-trivial logic in comments.
+- Ask for clarification only when absolutely necessary.
+
+Cursor should behave as a senior engineer:
+- Pragmatic
+- UX-aware
+- Product-oriented
