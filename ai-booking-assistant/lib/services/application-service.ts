@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { festivalService } from './festival-service';
 import { profileService } from './profile-service';
+import { settingsService } from './settings-service';
 import { sendEmail } from './mail-service';
 import { Festival, BandMaterial } from '../mock-data';
 
@@ -11,7 +12,19 @@ export const applicationService = {
   async processApplication(festivalId: string) {
     console.log(`Processing application for festival: ${festivalId}`);
 
-    // 1. Get festival data
+    // 1. Get settings (for Gmail credentials)
+    const settings = await settingsService.getSettings();
+    if (!settings || !settings.gmail_user || !settings.gmail_app_password) {
+      console.error('Gmail settings missing. Please configure them in Settings.');
+      return;
+    }
+
+    if (!settings.agent_active) {
+      console.log('Agent is paused in settings. Skipping application.');
+      return;
+    }
+
+    // 2. Get festival data
     const { data: festival } = await supabase
       .from('festivals')
       .select('*')
@@ -87,7 +100,11 @@ export const applicationService = {
       const emailResult = await sendEmail({
         to: festival.contact_email,
         subject: subject,
-        text: body
+        text: body,
+        auth: {
+          user: settings.gmail_user,
+          pass: settings.gmail_app_password
+        }
       });
 
       if (emailResult.success) {

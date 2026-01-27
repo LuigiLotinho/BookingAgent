@@ -6,19 +6,29 @@ interface MailOptions {
   text: string;
   html?: string;
   attachments?: any[];
+  auth?: {
+    user: string;
+    pass: string;
+  };
 }
 
 export const sendEmail = async (options: MailOptions) => {
+  // Use provided auth or fallback to env (env is mostly for testing now)
+  const user = options.auth?.user || process.env.GMAIL_USER;
+  const pass = options.auth?.pass || process.env.GMAIL_APP_PASSWORD;
+
+  if (!user || !pass) {
+    console.error('Email credentials missing');
+    return { success: false, error: 'Email credentials missing' };
+  }
+
   const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
+    auth: { user, pass },
   });
 
   const mailOptions = {
-    from: process.env.GMAIL_USER,
+    from: user,
     to: options.to,
     subject: options.subject,
     text: options.text,

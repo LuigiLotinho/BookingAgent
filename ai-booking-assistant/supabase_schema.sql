@@ -99,3 +99,27 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_festivals_updated_at BEFORE UPDATE ON festivals FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_band_materials_updated_at BEFORE UPDATE ON band_materials FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Table for Settings
+CREATE TABLE IF NOT EXISTS settings (
+  id UUID PRIMARY KEY DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
+  gmail_user TEXT,
+  gmail_app_password TEXT,
+  agent_active BOOLEAN DEFAULT TRUE,
+  similar_band_feature BOOLEAN DEFAULT TRUE,
+  notify_new_festivals BOOLEAN DEFAULT TRUE,
+  notify_application_sent BOOLEAN DEFAULT TRUE,
+  notify_errors BOOLEAN DEFAULT TRUE,
+  max_per_month INTEGER DEFAULT 50,
+  max_per_day INTEGER DEFAULT 5,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ensure a default settings row exists
+INSERT INTO settings (id) VALUES ('00000000-0000-0000-0000-000000000000'::uuid) ON CONFLICT (id) DO NOTHING;
+
+-- RLS disable for easy access in V1
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+
+CREATE TRIGGER update_settings_updated_at BEFORE UPDATE ON settings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
