@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/table"
 import { mockStats, mockFestivals, type Festival } from "@/lib/mock-data"
 import { festivalService } from "@/lib/services/festival-service"
+import { rechercheService } from "@/lib/services/recherche-service"
+import { profileService } from "@/lib/services/profile-service"
+import { processApplicationAction } from "@/lib/actions/application-actions"
+import { supabase } from "@/lib/supabase"
 import {
   Music,
   CheckCircle,
@@ -26,6 +30,7 @@ import {
   Calendar,
   ExternalLink,
   Loader2,
+  Search,
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -40,27 +45,48 @@ export default function DashboardPage() {
   })
   const [agentActive, setAgentActive] = useState(true)
   const [festivals, setFestivals] = useState<Festival[]>([])
+  const [searching, setSearching] = useState(false)
+
+  const loadDashboardData = async () => {
+    try {
+      const [fetchedStats, fetchedFestivals] = await Promise.all([
+        festivalService.getStats(),
+        festivalService.getNewFestivals(5)
+      ])
+      
+      setStats(fetchedStats)
+      setAgentActive(fetchedStats.agentActive)
+      setFestivals(fetchedFestivals)
+    } catch (error) {
+      console.error("Error loading dashboard data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const [fetchedStats, fetchedFestivals] = await Promise.all([
-          festivalService.getStats(),
-          festivalService.getNewFestivals(5)
-        ])
-        
-        setStats(fetchedStats)
-        setAgentActive(fetchedStats.agentActive)
-        setFestivals(fetchedFestivals)
-      } catch (error) {
-        console.error("Error loading dashboard data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadDashboardData()
   }, [])
+
+  const handleRunResearch = async () => {
+    setSearching(true)
+    try {
+      const profile = await profileService.getProfile()
+      if (profile) {
+        // We need the ID, but getProfile returns the mapped profile without ID for now.
+        // Let's adjust profileService or just fetch the first profile ID here.
+        const { data: profiles } = await supabase.from('profiles').select('id').limit(1)
+        if (profiles?.[0]) {
+          await rechercheService.runResearch(profiles[0].id)
+          await loadDashboardData()
+        }
+      }
+    } catch (error) {
+      console.error("Error running research:", error)
+    } finally {
+      setSearching(false)
+    }
+  }
 
   const handleToggleRelevant = async (festivalId: string) => {
     const festival = festivals.find(f => f.id === festivalId)
@@ -79,9 +105,17 @@ export default function DashboardPage() {
 
     try {
       await festivalService.toggleRelevance(festivalId, newRelevant)
-      // Refresh stats after change
-      const updatedStats = await festivalService.getStats()
-      setStats(updatedStats)
+      
+      // If now relevant, trigger the server action
+      if (newRelevant) {
+        processApplicationAction(festivalId).then(() => {
+          loadDashboardData()
+        })
+      } else {
+        // Refresh stats after change
+        const updatedStats = await festivalService.getStats()
+        setStats(updatedStats)
+      }
     } catch (error) {
       console.error("Error updating relevance:", error)
       // Revert optimistic update on error if needed
@@ -121,19 +155,31 @@ export default function DashboardPage() {
                 Willkommen zurueck. Hier ist der aktuelle Stand.
               </p>
             </div>
-            <Card className="flex items-center gap-4 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Bewerbungs-Agent</span>
-              </div>
-              <Switch
-                checked={agentActive}
-                onCheckedChange={setAgentActive}
-              />
-              <Badge variant={agentActive ? "default" : "secondary"}>
-                {agentActive ? "Aktiviert" : "Pausiert"}
-              </Badge>
-            </Card>
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={handleRunResearch} 
+                variant="outline" 
+                size="sm" 
+                disabled={searching || loading}
+                className="gap-2"
+              >
+                {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Festivals suchen
+              </Button>
+              <Card className="flex items-center gap-4 px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Bewerbungs-Agent</span>
+                </div>
+                <Switch
+                  checked={agentActive}
+                  onCheckedChange={setAgentActive}
+                />
+                <Badge variant={agentActive ? "default" : "secondary"}>
+                  {agentActive ? "Aktiviert" : "Pausiert"}
+                </Badge>
+              </Card>
+            </div>
           </div>
 
           {/* KPI Cards */}

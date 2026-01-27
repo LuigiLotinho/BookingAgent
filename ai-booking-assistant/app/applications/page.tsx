@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ApplicationDrawer } from "@/components/application-drawer"
 import { Badge } from "@/components/ui/badge"
@@ -21,15 +21,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockApplications, type Application } from "@/lib/mock-data"
-import { Eye, Filter, AlertTriangle, XCircle } from "lucide-react"
+import { type Application } from "@/lib/mock-data"
+import { supabase } from "@/lib/supabase"
+import { Eye, Filter, AlertTriangle, XCircle, Loader2 } from "lucide-react"
 
 export default function ApplicationsPage() {
-  const [applications] = useState(mockApplications)
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [languageFilter, setLanguageFilter] = useState<string>("all")
+
+  const fetchApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const mappedApps: Application[] = (data || []).map(app => ({
+        id: app.id,
+        festivalId: app.festival_id,
+        festivalName: app.festival_name,
+        year: app.year,
+        language: app.language,
+        applicationType: app.application_type,
+        status: app.status,
+        sentAt: app.sent_at,
+        subject: app.subject,
+        body: app.body,
+        errorMessage: app.error_message
+      }))
+
+      setApplications(mappedApps)
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchApplications()
+  }, [])
 
   const filteredApplications = applications.filter((app) => {
     const matchesStatus = statusFilter === "all" || app.status === statusFilter
@@ -154,52 +191,58 @@ export default function ApplicationsPage() {
 
           {/* Table */}
           <div className="rounded-lg border border-border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Festival</TableHead>
-                  <TableHead>Jahrgang</TableHead>
-                  <TableHead>Sprache</TableHead>
-                  <TableHead>Bewerbungsart</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Gesendet am</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.length === 0 ? (
+            {loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <p className="text-muted-foreground">Keine Bewerbungen gefunden.</p>
-                    </TableCell>
+                    <TableHead>Festival</TableHead>
+                    <TableHead>Jahrgang</TableHead>
+                    <TableHead>Sprache</TableHead>
+                    <TableHead>Bewerbungsart</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Gesendet am</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
-                ) : (
-                  filteredApplications.map((application) => (
-                    <TableRow
-                      key={application.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSelectApplication(application)}
-                    >
-                      <TableCell className="font-medium">{application.festivalName}</TableCell>
-                      <TableCell>{application.year}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{application.language}</Badge>
-                      </TableCell>
-                      <TableCell>{application.applicationType}</TableCell>
-                      <TableCell>{getStatusBadge(application.status)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(application.sentAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {filteredApplications.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center">
+                        <p className="text-muted-foreground">Keine Bewerbungen gefunden.</p>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filteredApplications.map((application) => (
+                      <TableRow
+                        key={application.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleSelectApplication(application)}
+                      >
+                        <TableCell className="font-medium">{application.festivalName}</TableCell>
+                        <TableCell>{application.year}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{application.language}</Badge>
+                        </TableCell>
+                        <TableCell>{application.applicationType}</TableCell>
+                        <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(application.sentAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
 
           {/* Info Notice */}

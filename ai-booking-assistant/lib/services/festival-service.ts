@@ -107,5 +107,40 @@ export const festivalService = {
     }
 
     return data[0] ? mapFestival(data[0]) : null;
+  },
+
+  /**
+   * Add multiple festivals (used by the research agent)
+   */
+  async addFestivals(festivals: Partial<Festival>[]) {
+    const payloads = festivals.map(f => ({
+      name: f.name,
+      location: f.location,
+      country: f.country,
+      distance: f.distance,
+      date_start: f.dateStart,
+      date_end: f.dateEnd,
+      size: f.size,
+      genres: f.genres,
+      contact_type: f.contactType || 'Unbekannt',
+      contact_email: f.contactEmail,
+      website: f.website,
+      description: f.description,
+      status: f.status || 'Neu',
+      source: f.source || 'Keyword',
+      is_relevant: f.isRelevant || false,
+    }));
+
+    const { data, error } = await supabase
+      .from('festivals')
+      .upsert(payloads, { onConflict: 'name,date_start' })
+      .select();
+
+    if (error) {
+      console.error('Error adding festivals:', error.message, error.details, error.hint);
+      return [];
+    }
+
+    return (data || []).map(mapFestival);
   }
 };

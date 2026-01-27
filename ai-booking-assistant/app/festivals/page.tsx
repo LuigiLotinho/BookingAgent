@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { type Festival } from "@/lib/mock-data"
 import { festivalService } from "@/lib/services/festival-service"
+import { processApplicationAction } from "@/lib/actions/application-actions"
 import { Search, Filter, CheckCircle, X, Loader2 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -71,6 +72,9 @@ const FestivalsPage = () => {
 
     try {
       await festivalService.toggleRelevance(festivalId, newRelevant)
+      if (newRelevant) {
+        processApplicationAction(festivalId)
+      }
     } catch (error) {
       console.error("Error updating relevance:", error)
       // Revert if needed

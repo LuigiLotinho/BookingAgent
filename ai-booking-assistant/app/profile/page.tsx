@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { mockBandProfile } from "@/lib/mock-data"
+import { mockBandProfile, type BandMaterial } from "@/lib/mock-data"
+import { profileService } from "@/lib/services/profile-service"
+import { useToast } from "@/hooks/use-toast"
 import {
   Music,
   Globe,
@@ -26,6 +28,8 @@ import {
   Mail,
   File,
   Eye,
+  Users,
+  Loader2,
 } from "lucide-react"
 
 const availableLanguages = [
@@ -48,6 +52,73 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(mockBandProfile)
   const [newGenre, setNewGenre] = useState("")
   const [selectedLanguage, setSelectedLanguage] = useState<"DE" | "EN" | "FR" | "ES">("DE")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const data = await profileService.getProfile()
+        if (data) {
+          setProfile(data)
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error)
+        toast({
+          title: "Fehler",
+          description: "Profil konnte nicht geladen werden.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProfile()
+  }, [toast])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await profileService.saveProfile(profile)
+      toast({
+        title: "Gespeichert",
+        description: "Dein Profil wurde erfolgreich aktualisiert.",
+      })
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      toast({
+        title: "Fehler",
+        description: "Profil konnte nicht gespeichert werden.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdateMaterial = (langCode: string, field: keyof BandMaterial, value: string) => {
+    setProfile((prev) => {
+      const materials = [...prev.materials]
+      const index = materials.findIndex((m) => m.language === langCode)
+      
+      if (index >= 0) {
+        materials[index] = { ...materials[index], [field]: value }
+      } else {
+        // Create new material if it doesn't exist
+        const newMaterial: BandMaterial = {
+          language: langCode as any,
+          bioShort: "",
+          bioLong: "",
+          applicationEmail: "",
+          [field]: value
+        }
+        materials.push(newMaterial)
+      }
+      
+      return { ...prev, materials }
+    })
+  }
 
   const handleAddGenre = () => {
     if (newGenre.trim() && !profile.genres.includes(newGenre.trim())) {
@@ -94,6 +165,34 @@ export default function ProfilePage() {
 
   const getDocumentByType = (type: string) => {
     return profile.documents.find((d) => d.type === type)
+  }
+
+  const handleUpdateDocument = (type: string, value: string) => {
+    setProfile((prev) => {
+      const documents = [...prev.documents]
+      const index = documents.findIndex((d) => d.type === type)
+      
+      if (index >= 0) {
+        // If it looks like a URL, set url, otherwise fileName
+        const isUrl = value.startsWith("http") || value.startsWith("https")
+        documents[index] = { 
+          ...documents[index], 
+          url: isUrl ? value : "", 
+          fileName: isUrl ? "" : value 
+        }
+      } else {
+        const isUrl = value.startsWith("http") || value.startsWith("https")
+        documents.push({
+          id: crypto.randomUUID(),
+          name: type,
+          type: type as any,
+          url: isUrl ? value : "",
+          fileName: isUrl ? "" : value
+        })
+      }
+      
+      return { ...prev, documents }
+    })
   }
 
   // Generate the complete email preview
@@ -161,13 +260,18 @@ export default function ProfilePage() {
                 Einmal einrichten - dann uebernimmt der Agent.
               </p>
             </div>
-            <Button>
-              <Save className="mr-2 h-4 w-4" />
+            <Button onClick={handleSave} disabled={saving || loading}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Speichern
             </Button>
           </div>
 
-          <div className="space-y-6">
+          {loading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-6">
             {/* Basic Data */}
             <Card>
               <CardHeader>
@@ -412,6 +516,7 @@ export default function ProfilePage() {
                           <Textarea
                             placeholder={`Bewerbungstext auf ${lang.name}...\n\nBeispiel:\nLiebes [FESTIVAL_NAME] Team,\n\nwir moechten uns hiermit sehr gerne mit unserer Band ${profile.name} fuer einen Auftritt bewerben...`}
                             value={material.applicationEmail || ""}
+                            onChange={(e) => handleUpdateMaterial(lang.code, "applicationEmail", e.target.value)}
                             rows={10}
                             className="resize-none font-mono text-sm"
                           />
@@ -437,6 +542,7 @@ export default function ProfilePage() {
                                   id={`instagram-${lang.code}`}
                                   placeholder="https://instagram.com/..."
                                   value={material.instagramUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "instagramUrl", e.target.value)}
                                 />
                                 {material.instagramUrl && (
                                   <a
@@ -457,6 +563,7 @@ export default function ProfilePage() {
                                   id={`facebook-${lang.code}`}
                                   placeholder="https://facebook.com/..."
                                   value={material.facebookUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "facebookUrl", e.target.value)}
                                 />
                                 {material.facebookUrl && (
                                   <a
@@ -480,6 +587,7 @@ export default function ProfilePage() {
                                   id={`tiktok-${lang.code}`}
                                   placeholder="https://tiktok.com/@..."
                                   value={material.tiktokUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "tiktokUrl", e.target.value)}
                                 />
                                 {material.tiktokUrl && (
                                   <a
@@ -500,6 +608,7 @@ export default function ProfilePage() {
                                   id={`website-${lang.code}`}
                                   placeholder="https://..."
                                   value={material.websiteUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "websiteUrl", e.target.value)}
                                 />
                                 {material.websiteUrl && (
                                   <a
@@ -523,6 +632,7 @@ export default function ProfilePage() {
                                   id={`spotify-${lang.code}`}
                                   placeholder="https://open.spotify.com/artist/..."
                                   value={material.spotifyUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "spotifyUrl", e.target.value)}
                                 />
                                 {material.spotifyUrl && (
                                   <a
@@ -543,6 +653,7 @@ export default function ProfilePage() {
                                   id={`youtube-${lang.code}`}
                                   placeholder="https://youtube.com/@..."
                                   value={material.youtubeUrl || ""}
+                                  onChange={(e) => handleUpdateMaterial(lang.code, "youtubeUrl", e.target.value)}
                                 />
                                 {material.youtubeUrl && (
                                   <a
@@ -564,6 +675,7 @@ export default function ProfilePage() {
                               id={`epk-${lang.code}`}
                               placeholder="https://..."
                               value={material.epkUrl || ""}
+                              onChange={(e) => handleUpdateMaterial(lang.code, "epkUrl", e.target.value)}
                             />
                           </div>
 
@@ -577,6 +689,7 @@ export default function ProfilePage() {
                                 id={`extra1-${lang.code}`}
                                 placeholder="https://..."
                                 value={material.extraLink1 || ""}
+                                onChange={(e) => handleUpdateMaterial(lang.code, "extraLink1", e.target.value)}
                               />
                             </div>
                             <div className="space-y-2">
@@ -585,6 +698,7 @@ export default function ProfilePage() {
                                 id={`extra2-${lang.code}`}
                                 placeholder="https://..."
                                 value={material.extraLink2 || ""}
+                                onChange={(e) => handleUpdateMaterial(lang.code, "extraLink2", e.target.value)}
                               />
                             </div>
                             <div className="space-y-2">
@@ -593,6 +707,7 @@ export default function ProfilePage() {
                                 id={`extra3-${lang.code}`}
                                 placeholder="https://..."
                                 value={material.extraLink3 || ""}
+                                onChange={(e) => handleUpdateMaterial(lang.code, "extraLink3", e.target.value)}
                               />
                             </div>
                           </div>
@@ -626,6 +741,7 @@ export default function ProfilePage() {
                           <Input
                             placeholder={`${label} URL oder Datei...`}
                             value={doc?.url || doc?.fileName || ""}
+                            onChange={(e) => handleUpdateDocument(type, e.target.value)}
                             className="flex-1"
                           />
                           <Button variant="outline" size="icon">
@@ -685,6 +801,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </main>
     </div>
