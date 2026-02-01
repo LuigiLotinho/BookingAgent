@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { mockBandProfile, type BandMaterial } from "@/lib/mock-data"
 import { profileService } from "@/lib/services/profile-service"
+import { sendTestApplicationAction } from "@/lib/actions/application-actions"
 import { useToast } from "@/hooks/use-toast"
 import {
   Music,
@@ -54,6 +55,7 @@ export default function ProfilePage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"DE" | "EN" | "FR" | "ES">("DE")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -94,6 +96,34 @@ export default function ProfilePage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSendTestApplication = async () => {
+    setSendingTest(true)
+    try {
+      const result = await sendTestApplicationAction(selectedLanguage)
+      if (result?.success) {
+        toast({
+          title: "Testbewerbung gesendet",
+          description: `Die Testbewerbung wurde an ${profile.email} gesendet.`,
+        })
+      } else {
+        toast({
+          title: "Fehler",
+          description: result?.error || "Testbewerbung konnte nicht gesendet werden.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error sending test application:", error)
+      toast({
+        title: "Fehler",
+        description: "Testbewerbung konnte nicht gesendet werden.",
+        variant: "destructive",
+      })
+    } finally {
+      setSendingTest(false)
     }
   }
 
@@ -260,10 +290,21 @@ export default function ProfilePage() {
                 Einmal einrichten - dann uebernimmt der Agent.
               </p>
             </div>
-            <Button onClick={handleSave} disabled={saving || loading}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Speichern
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSendTestApplication}
+                disabled={sendingTest || loading || !profile.email}
+                className="gap-2"
+              >
+                {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                Testbewerbung an sich selbst schicken
+              </Button>
+              <Button onClick={handleSave} disabled={saving || loading}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Speichern
+              </Button>
+            </div>
           </div>
 
           {loading ? (

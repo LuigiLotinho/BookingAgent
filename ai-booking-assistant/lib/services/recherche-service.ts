@@ -36,20 +36,6 @@ export const rechercheService = {
     // For this demo/setup, we'll insert the real festivals found by the assistant.
     const findings: Partial<Festival>[] = [
       {
-        name: "Test Bewerbung an mich selbst",
-        location: "Karlsruhe",
-        country: "Deutschland",
-        distance: 0,
-        dateStart: new Date().toISOString().split('T')[0],
-        dateEnd: new Date().toISOString().split('T')[0],
-        size: "Klein",
-        genres: ["Test"],
-        website: "http://localhost:3001",
-        description: "Dies ist eine Test-Bewerbung, um den E-Mail-Versand zu pruefen. Die E-Mail wird an dein Profil-Postfach gesendet.",
-        contactEmail: profile.email,
-        source: "Keyword"
-      },
-      {
         name: "Rudolstadt Festival 2026",
         location: "Rudolstadt",
         country: "Deutschland",
