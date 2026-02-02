@@ -11,6 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import { mockBandProfile, type BandMaterial } from "@/lib/mock-data"
 import { profileService } from "@/lib/services/profile-service"
 import { sendTestApplicationAction } from "@/lib/actions/application-actions"
@@ -279,33 +284,37 @@ export default function ProfilePage() {
   }, [profile, selectedLanguage])
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar />
-      <main className="ml-64 p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Band-Profil</h1>
-              <p className="text-muted-foreground">
-                Einmal einrichten - dann uebernimmt der Agent.
-              </p>
+      <SidebarInset className="min-h-screen">
+        <div className="p-4 md:p-8">
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Band-Profil</h1>
+                  <p className="text-muted-foreground">
+                    Einmal einrichten - dann uebernimmt der Agent.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant="outline"
+                  onClick={handleSendTestApplication}
+                  disabled={sendingTest || loading || !profile.email}
+                  className="gap-2"
+                >
+                  {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  Testbewerbung an sich selbst schicken
+                </Button>
+                <Button onClick={handleSave} disabled={saving || loading}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Speichern
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleSendTestApplication}
-                disabled={sendingTest || loading || !profile.email}
-                className="gap-2"
-              >
-                {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                Testbewerbung an sich selbst schicken
-              </Button>
-              <Button onClick={handleSave} disabled={saving || loading}>
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Speichern
-              </Button>
-            </div>
-          </div>
 
           {loading ? (
             <div className="flex h-64 items-center justify-center">
@@ -417,6 +426,7 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveGenre(genre)}
+                          aria-label={`Genre ${genre} entfernen`}
                           className="ml-1 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
@@ -530,7 +540,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="DE" onValueChange={(v) => setSelectedLanguage(v as typeof selectedLanguage)}>
-                  <TabsList className="mb-4">
+                  <TabsList className="mb-4 w-full justify-start overflow-x-auto">
                     {availableLanguages.map((lang) => (
                       <TabsTrigger key={lang.code} value={lang.code}>
                         {lang.code}
@@ -590,6 +600,7 @@ export default function ProfilePage() {
                                     href={material.instagramUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="Instagram Profil oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -611,6 +622,7 @@ export default function ProfilePage() {
                                     href={material.facebookUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="Facebook Profil oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -635,6 +647,7 @@ export default function ProfilePage() {
                                     href={material.tiktokUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="TikTok Profil oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -656,6 +669,7 @@ export default function ProfilePage() {
                                     href={material.websiteUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="Webseite oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -680,6 +694,7 @@ export default function ProfilePage() {
                                     href={material.spotifyUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="Spotify Profil oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -701,6 +716,7 @@ export default function ProfilePage() {
                                     href={material.youtubeUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    aria-label="YouTube Kanal oeffnen"
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                   >
                                     <ExternalLink className="h-4 w-4" />
@@ -843,8 +859,9 @@ export default function ProfilePage() {
             </Card>
           </div>
           )}
+          </div>
         </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

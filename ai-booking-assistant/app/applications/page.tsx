@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import {
   Table,
   TableBody,
   TableCell,
@@ -106,16 +111,22 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar />
-      <main className="ml-64 p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground">Bewerbungen</h1>
-            <p className="text-muted-foreground">
-              Transparente Uebersicht aller gesendeten und geplanten Bewerbungen.
-            </p>
-          </div>
+      <SidebarInset className="min-h-screen">
+        <div className="p-4 md:p-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Bewerbungen</h1>
+                  <p className="text-muted-foreground">
+                    Transparente Uebersicht aller gesendeten und geplanten Bewerbungen.
+                  </p>
+                </div>
+              </div>
+            </div>
 
           {/* Error Alert */}
           {errorApplications.length > 0 && (
@@ -156,9 +167,9 @@ export default function ApplicationsPage() {
           )}
 
           {/* Filters */}
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -172,7 +183,7 @@ export default function ApplicationsPage() {
             </Select>
 
             <Select value={languageFilter} onValueChange={setLanguageFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Sprache" />
               </SelectTrigger>
               <SelectContent>
@@ -184,7 +195,7 @@ export default function ApplicationsPage() {
               </SelectContent>
             </Select>
 
-            <span className="ml-auto text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground sm:ml-auto">
               {filteredApplications.length} Bewerbungen
             </span>
           </div>
@@ -196,52 +207,54 @@ export default function ApplicationsPage() {
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Festival</TableHead>
-                    <TableHead>Jahrgang</TableHead>
-                    <TableHead>Sprache</TableHead>
-                    <TableHead>Bewerbungsart</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Gesendet am</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredApplications.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
-                        <p className="text-muted-foreground">Keine Bewerbungen gefunden.</p>
-                      </TableCell>
+                      <TableHead>Festival</TableHead>
+                      <TableHead>Jahrgang</TableHead>
+                      <TableHead>Sprache</TableHead>
+                      <TableHead>Bewerbungsart</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Gesendet am</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
                     </TableRow>
-                  ) : (
-                    filteredApplications.map((application) => (
-                      <TableRow
-                        key={application.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSelectApplication(application)}
-                      >
-                        <TableCell className="font-medium">{application.festivalName}</TableCell>
-                        <TableCell>{application.year}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{application.language}</Badge>
-                        </TableCell>
-                        <TableCell>{application.applicationType}</TableCell>
-                        <TableCell>{getStatusBadge(application.status)}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(application.sentAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-32 text-center">
+                          <p className="text-muted-foreground">Keine Bewerbungen gefunden.</p>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      filteredApplications.map((application) => (
+                        <TableRow
+                          key={application.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleSelectApplication(application)}
+                        >
+                          <TableCell className="font-medium">{application.festivalName}</TableCell>
+                          <TableCell>{application.year}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{application.language}</Badge>
+                          </TableCell>
+                          <TableCell>{application.applicationType}</TableCell>
+                          <TableCell>{getStatusBadge(application.status)}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(application.sentAt)}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </div>
 
@@ -259,8 +272,9 @@ export default function ApplicationsPage() {
             open={drawerOpen}
             onOpenChange={setDrawerOpen}
           />
+          </div>
         </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

@@ -1,6 +1,11 @@
 "use client"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -144,46 +149,52 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar />
-      <main className="ml-64 p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-              <p className="text-muted-foreground">
-                Willkommen zurueck. Hier ist der aktuelle Stand.
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button 
-                onClick={handleRunResearch} 
-                variant="outline" 
-                size="sm" 
-                disabled={searching || loading}
-                className="gap-2"
-              >
-                {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                Festivals suchen
-              </Button>
-              <Card className="flex items-center gap-4 px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Bewerbungs-Agent</span>
+      <SidebarInset className="min-h-screen">
+        <div className="p-4 md:p-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                  <p className="text-muted-foreground">
+                    Willkommen zurueck. Hier ist der aktuelle Stand.
+                  </p>
                 </div>
-                <Switch
-                  checked={agentActive}
-                  onCheckedChange={setAgentActive}
-                />
-                <Badge variant={agentActive ? "default" : "secondary"}>
-                  {agentActive ? "Aktiviert" : "Pausiert"}
-                </Badge>
-              </Card>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button 
+                  onClick={handleRunResearch} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={searching || loading}
+                  className="gap-2"
+                >
+                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Festivals suchen
+                </Button>
+                <Card className="flex flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Bewerbungs-Agent</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={agentActive}
+                      onCheckedChange={setAgentActive}
+                    />
+                    <Badge variant={agentActive ? "default" : "secondary"}>
+                      {agentActive ? "Aktiviert" : "Pausiert"}
+                    </Badge>
+                  </div>
+                </Card>
+              </div>
             </div>
-          </div>
 
           {/* KPI Cards */}
-          <div className="mb-8 grid gap-4 md:grid-cols-3">
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -238,12 +249,12 @@ export default function DashboardPage() {
 
           {/* New Festivals Table */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Music className="h-5 w-5 text-primary" />
                 Neu gefundene Festivals
               </CardTitle>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
                 <Link href="/festivals">
                   Alle anzeigen
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -261,7 +272,8 @@ export default function DashboardPage() {
                     Es gibt {festivals.length} neue Festivals, die auf deine Freigabe warten.
                   </p>
                   <div className="rounded-lg border border-border">
-                    <Table>
+                    <div className="overflow-x-auto">
+                      <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[60px]">Agent aktiv</TableHead>
@@ -331,14 +343,16 @@ export default function DashboardPage() {
                           ))
                         )}
                       </TableBody>
-                    </Table>
+                      </Table>
+                    </div>
                   </div>
                 </>
               )}
             </CardContent>
           </Card>
+          </div>
         </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

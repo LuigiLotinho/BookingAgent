@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import { settingsService, type AppSettings } from "@/lib/services/settings-service"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -76,32 +81,38 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <SidebarProvider>
         <AppSidebar />
-        <main className="ml-64 flex h-screen items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </main>
-      </div>
+        <SidebarInset className="min-h-screen">
+          <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar />
-      <main className="ml-64 p-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Einstellungen</h1>
-              <p className="text-muted-foreground">
-                Konfiguriere den Agent und deine Praeferenzen.
-              </p>
+      <SidebarInset className="min-h-screen">
+        <div className="p-4 md:p-8">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Einstellungen</h1>
+                  <p className="text-muted-foreground">
+                    Konfiguriere den Agent und deine Praeferenzen.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Speichern
+              </Button>
             </div>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Speichern
-            </Button>
-          </div>
 
           <div className="space-y-6">
             {/* E-Mail Setup */}
@@ -296,8 +307,9 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

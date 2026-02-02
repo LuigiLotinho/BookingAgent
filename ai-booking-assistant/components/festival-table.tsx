@@ -1,8 +1,6 @@
 "use client"
 
 import React from "react"
-
-import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -21,53 +19,32 @@ interface FestivalTableProps {
   festivals: Festival[]
   onToggleRelevant: (id: string) => void
   onSelectFestival: (festival: Festival) => void
+  sortField: SortField
+  sortDirection: SortDirection
+  onSortChange: (field: SortField) => void
 }
 
-type SortField = "name" | "distance" | "dateStart" | "size" | "genre" | null
+type SortField =
+  | "relevant"
+  | "name"
+  | "location"
+  | "dateStart"
+  | "size"
+  | "genre"
+  | "contactType"
+  | "status"
+  | "source"
+  | "website"
 type SortDirection = "asc" | "desc"
-
-const sizeOrder = { Klein: 1, Mittel: 2, Gross: 3 }
 
 export function FestivalTable({
   festivals,
   onToggleRelevant,
   onSelectFestival,
+  sortField,
+  sortDirection,
+  onSortChange,
 }: FestivalTableProps) {
-  const [sortField, setSortField] = useState<SortField>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
-    }
-  }
-
-  const sortedFestivals = [...festivals].sort((a, b) => {
-    if (!sortField) return 0
-    
-    let comparison = 0
-    switch (sortField) {
-      case "name":
-        comparison = a.name.localeCompare(b.name)
-        break
-      case "distance":
-        comparison = a.distance - b.distance
-        break
-      case "dateStart":
-        comparison = new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
-        break
-      case "size":
-        comparison = sizeOrder[a.size] - sizeOrder[b.size]
-        break
-      case "genre":
-        comparison = (a.genres[0] || "").localeCompare(b.genres[0] || "")
-        break
-    }
-    return sortDirection === "asc" ? comparison : -comparison
-  })
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start)
@@ -122,7 +99,7 @@ export function FestivalTable({
       variant="ghost"
       size="sm"
       className="-ml-3 h-8 hover:bg-transparent"
-      onClick={() => handleSort(field)}
+      onClick={() => onSortChange(field)}
     >
       {children}
       <SortIcon field={field} />
@@ -134,12 +111,14 @@ export function FestivalTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Agent aktiv</TableHead>
+            <TableHead className="w-[120px]">
+              <SortableHeader field="relevant">Agent aktiv</SortableHeader>
+            </TableHead>
             <TableHead>
               <SortableHeader field="name">Festival</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="distance">Ort</SortableHeader>
+              <SortableHeader field="location">Ort</SortableHeader>
             </TableHead>
             <TableHead>
               <SortableHeader field="dateStart">Datum</SortableHeader>
@@ -150,14 +129,22 @@ export function FestivalTable({
             <TableHead>
               <SortableHeader field="genre">Genres</SortableHeader>
             </TableHead>
-            <TableHead>Kontakt</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Quelle</TableHead>
-            <TableHead>Links</TableHead>
+            <TableHead>
+              <SortableHeader field="contactType">Kontakt</SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader field="status">Status</SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader field="source">Quelle</SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader field="website">Links</SortableHeader>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedFestivals.length === 0 ? (
+          {festivals.length === 0 ? (
             <TableRow>
               <TableCell colSpan={10} className="h-32 text-center">
                 <p className="text-muted-foreground">Keine Festivals gefunden.</p>
@@ -165,7 +152,7 @@ export function FestivalTable({
               </TableCell>
             </TableRow>
           ) : (
-            sortedFestivals.map((festival) => (
+            festivals.map((festival) => (
               <TableRow
                 key={festival.id}
                 className="cursor-pointer hover:bg-muted/50"
