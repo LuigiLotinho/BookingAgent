@@ -54,6 +54,14 @@ const documentTypes = [
   { type: "extra-doc-2", label: "Extra Dokument 2" },
 ] as const
 
+const photoTypes = [
+  { type: "photo-1", label: "Foto 1" },
+  { type: "photo-2", label: "Foto 2" },
+  { type: "photo-3", label: "Foto 3" },
+  { type: "photo-4", label: "Foto 4" },
+  { type: "photo-5", label: "Foto 5" },
+] as const
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState(mockBandProfile)
   const [newGenre, setNewGenre] = useState("")
@@ -264,6 +272,19 @@ export default function ProfilePage() {
       }
     }
 
+    // Build photos section
+    const photos: string[] = []
+    for (const photoType of photoTypes) {
+      const photo = getDocumentByType(photoType.type)
+      if (photo) {
+        if (photo.url) {
+          photos.push(`${photoType.label}: ${photo.url}`)
+        } else if (photo.fileName) {
+          photos.push(`${photoType.label}: [Anhang: ${photo.fileName}]`)
+        }
+      }
+    }
+
     // Build signature
     const signature = `\n\nHerzliche Gruesse\n${profile.contactPerson}\n${profile.contactRole} - ${profile.name}${profile.phone ? `\nTelefon: ${profile.phone}` : ""}`
 
@@ -276,6 +297,10 @@ export default function ProfilePage() {
 
     if (docs.length > 0) {
       finalEmail += `\n\nAngehaengte Dokumente:\n${docs.join("\n")}`
+    }
+
+    if (photos.length > 0) {
+      finalEmail += `\n\nAngehaengte Fotos:\n${photos.join("\n")}`
     }
 
     finalEmail += signature
@@ -768,6 +793,7 @@ export default function ProfilePage() {
                               />
                             </div>
                           </div>
+
                         </div>
                       </TabsContent>
                     )
@@ -818,6 +844,48 @@ export default function ProfilePage() {
                               <>
                                 <File className="h-3 w-3" />
                                 <span>{doc.fileName}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <Separator className="my-6" />
+
+                <h4 className="text-sm font-medium">Foto</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {photoTypes.map(({ type, label }) => {
+                    const photo = getDocumentByType(type)
+                    return (
+                      <div key={type} className="space-y-2">
+                        <Label>{label}</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={`${label} URL oder Datei...`}
+                            value={photo?.url || photo?.fileName || ""}
+                            onChange={(e) => handleUpdateDocument(type, e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button variant="outline" size="icon">
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {photo && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {photo.url ? (
+                              <>
+                                <LinkIcon className="h-3 w-3" />
+                                <a href={photo.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                  {photo.name}
+                                </a>
+                              </>
+                            ) : (
+                              <>
+                                <File className="h-3 w-3" />
+                                <span>{photo.fileName}</span>
                               </>
                             )}
                           </div>

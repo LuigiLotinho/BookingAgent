@@ -58,10 +58,35 @@ export async function sendTestApplicationAction(language: "DE" | "EN" | "FR" | "
       body += `\n\nLinks:\n${links.join("\n")}`;
     }
 
+    const photoDocs = profile.documents.filter((doc) => doc.type.startsWith("photo-"));
+    const photoLinks = photoDocs
+      .filter((doc) => doc.url)
+      .map((doc) => doc.url as string);
+    const photoFileNames = photoDocs
+      .filter((doc) => !doc.url && doc.fileName)
+      .map((doc) => doc.fileName as string);
+
+    if (photoLinks.length > 0) {
+      body += `\n\nFotos (Links):\n${photoLinks.join("\n")}`;
+    }
+
+    if (photoFileNames.length > 0) {
+      body += `\n\nFotos (Dateinamen):\n${photoFileNames.join("\n")}`;
+    }
+
+    const photoAttachments = photoDocs
+      .filter((doc) => doc.url)
+      .slice(0, 5)
+      .map((doc, index) => ({
+        filename: doc.fileName || doc.name || `foto-${index + 1}.jpg`,
+        path: doc.url,
+      }));
+
     const emailResult = await sendEmail({
       to: profile.email,
       subject,
       text: body,
+      attachments: photoAttachments.length > 0 ? photoAttachments : undefined,
       auth: {
         user: settings.gmail_user,
         pass: settings.gmail_app_password,

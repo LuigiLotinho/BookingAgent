@@ -51,7 +51,18 @@ export interface BandMaterial {
 export interface BandDocument {
   id: string
   name: string
-  type: "deck" | "tech-rider" | "press-kit" | "hospitality-rider" | "extra-doc-1" | "extra-doc-2"
+  type:
+    | "deck"
+    | "tech-rider"
+    | "press-kit"
+    | "hospitality-rider"
+    | "extra-doc-1"
+    | "extra-doc-2"
+    | "photo-1"
+    | "photo-2"
+    | "photo-3"
+    | "photo-4"
+    | "photo-5"
   url?: string
   fileName?: string
 }
