@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import type { Festival } from "@/lib/mock-data"
+import { useLanguage } from "@/components/language-provider"
+import { getContactTypeLabel, getFestivalSizeLabel } from "@/lib/i18n"
 import {
   MapPin,
   Calendar,
@@ -37,12 +39,56 @@ export function FestivalDrawer({
   onOpenChange,
   onToggleRelevant,
 }: FestivalDrawerProps) {
+  const { language, locale } = useLanguage()
+
+  const copy = {
+    DE: {
+      distance: "{distance} km entfernt",
+      festivalDate: "Festivaldatum",
+      sizeEstimated: "Festivalgroesse (geschaetzt)",
+      noContact: "Kein Bewerbungsweg bekannt",
+      genres: "Genres",
+      whyTitle: "Warum dieses Festival?",
+      similarBand: "Aehnliche Bands spielen dort",
+      sizeFit: "Passende Festivalgroesse",
+      removeApproval: "Freigabe entfernen",
+      markRelevant: "Als relevant markieren",
+      openWebsite: "Website oeffnen",
+    },
+    EN: {
+      distance: "{distance} km away",
+      festivalDate: "Festival dates",
+      sizeEstimated: "Festival size (estimated)",
+      noContact: "No application channel known",
+      genres: "Genres",
+      whyTitle: "Why this festival?",
+      similarBand: "Similar bands play there",
+      sizeFit: "Matching festival size",
+      removeApproval: "Remove approval",
+      markRelevant: "Mark as relevant",
+      openWebsite: "Open website",
+    },
+    ES: {
+      distance: "{distance} km de distancia",
+      festivalDate: "Fechas del festival",
+      sizeEstimated: "Tamano del festival (estimado)",
+      noContact: "No se conoce via de solicitud",
+      genres: "Generos",
+      whyTitle: "Por que este festival?",
+      similarBand: "Bandas similares tocan alli",
+      sizeFit: "Tamano de festival adecuado",
+      removeApproval: "Quitar aprobacion",
+      markRelevant: "Marcar como relevante",
+      openWebsite: "Abrir sitio web",
+    },
+  }[language]
+
   if (!festival) return null
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start)
     const endDate = new Date(end)
-    return `${startDate.toLocaleDateString("de-DE")} – ${endDate.toLocaleDateString("de-DE")}`
+    return `${startDate.toLocaleDateString(locale)} – ${endDate.toLocaleDateString(locale)}`
   }
 
   const getContactIcon = (type: Festival["contactType"]) => {
@@ -81,7 +127,9 @@ export function FestivalDrawer({
               </div>
               <div>
                 <p className="text-sm font-medium">{festival.location}, {festival.country}</p>
-                <p className="text-xs text-muted-foreground">{festival.distance} km entfernt</p>
+                <p className="text-xs text-muted-foreground">
+                  {copy.distance.replace("{distance}", String(festival.distance))}
+                </p>
               </div>
             </div>
 
@@ -91,7 +139,7 @@ export function FestivalDrawer({
               </div>
               <div>
                 <p className="text-sm font-medium">{formatDate(festival.dateStart, festival.dateEnd)}</p>
-                <p className="text-xs text-muted-foreground">Festivaldatum</p>
+                <p className="text-xs text-muted-foreground">{copy.festivalDate}</p>
               </div>
             </div>
 
@@ -100,8 +148,8 @@ export function FestivalDrawer({
                 <Users className="h-4 w-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium">{festival.size}</p>
-                <p className="text-xs text-muted-foreground">Festivalgroesse (geschaetzt)</p>
+                <p className="text-sm font-medium">{getFestivalSizeLabel(festival.size, language)}</p>
+                <p className="text-xs text-muted-foreground">{copy.sizeEstimated}</p>
               </div>
             </div>
 
@@ -110,12 +158,14 @@ export function FestivalDrawer({
                 {getContactIcon(festival.contactType)}
               </div>
               <div>
-                <p className="text-sm font-medium">{festival.contactType}</p>
+                <p className="text-sm font-medium">
+                  {getContactTypeLabel(festival.contactType, language)}
+                </p>
                 {festival.contactEmail && (
                   <p className="text-xs text-muted-foreground">{festival.contactEmail}</p>
                 )}
                 {festival.contactType === "Unbekannt" && (
-                  <p className="text-xs text-destructive">Kein Bewerbungsweg bekannt</p>
+                  <p className="text-xs text-destructive">{copy.noContact}</p>
                 )}
               </div>
             </div>
@@ -127,7 +177,7 @@ export function FestivalDrawer({
           <div>
             <h4 className="mb-3 text-sm font-medium flex items-center gap-2">
               <Music className="h-4 w-4" />
-              Genres
+              {copy.genres}
             </h4>
             <div className="flex flex-wrap gap-2">
               {festival.genres.map((genre) => (
@@ -144,7 +194,7 @@ export function FestivalDrawer({
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
             <h4 className="mb-2 text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              Warum dieses Festival?
+              {copy.whyTitle}
             </h4>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
@@ -154,12 +204,12 @@ export function FestivalDrawer({
               {festival.source === "Similar Band" && (
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-3.5 w-3.5 text-success" />
-                  Aehnliche Bands spielen dort
+                  {copy.similarBand}
                 </li>
               )}
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-3.5 w-3.5 text-success" />
-                Passende Festivalgroesse
+                {copy.sizeFit}
               </li>
             </ul>
           </div>
@@ -176,12 +226,12 @@ export function FestivalDrawer({
               {festival.isRelevant ? (
                 <>
                   <XCircle className="mr-2 h-4 w-4" />
-                  Freigabe entfernen
+                  {copy.removeApproval}
                 </>
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Als relevant markieren
+                  {copy.markRelevant}
                 </>
               )}
             </Button>
@@ -191,7 +241,7 @@ export function FestivalDrawer({
             <Button variant="outline" className="w-full bg-transparent" asChild>
               <a href={festival.website} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Website oeffnen
+                {copy.openWebsite}
               </a>
             </Button>
           )}

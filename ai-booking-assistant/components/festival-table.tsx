@@ -4,6 +4,14 @@ import React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useLanguage } from "@/components/language-provider"
+import {
+  formatTemplate,
+  getContactTypeLabel,
+  getFestivalSizeLabel,
+  getFestivalStatusLabel,
+  getSourceLabel,
+} from "@/lib/i18n"
 import {
   Table,
   TableBody,
@@ -45,13 +53,62 @@ export function FestivalTable({
   sortDirection,
   onSortChange,
 }: FestivalTableProps) {
+  const { language, locale } = useLanguage()
+
+  const copy = {
+    DE: {
+      agentActive: "Agent aktiv",
+      festival: "Festival",
+      location: "Ort",
+      date: "Datum",
+      size: "Groesse",
+      genres: "Genres",
+      contact: "Kontakt",
+      status: "Status",
+      source: "Quelle",
+      links: "Links",
+      websiteAria: "Website von {name} oeffnen",
+      emptyTitle: "Keine Festivals gefunden.",
+      emptyHint: "Der Agent sucht aktuell nach passenden Festivals.",
+    },
+    EN: {
+      agentActive: "Agent active",
+      festival: "Festival",
+      location: "Location",
+      date: "Date",
+      size: "Size",
+      genres: "Genres",
+      contact: "Contact",
+      status: "Status",
+      source: "Source",
+      links: "Links",
+      websiteAria: "Open website for {name}",
+      emptyTitle: "No festivals found.",
+      emptyHint: "The agent is currently searching for suitable festivals.",
+    },
+    ES: {
+      agentActive: "Agente activo",
+      festival: "Festival",
+      location: "Lugar",
+      date: "Fecha",
+      size: "Tamano",
+      genres: "Generos",
+      contact: "Contacto",
+      status: "Estado",
+      source: "Fuente",
+      links: "Enlaces",
+      websiteAria: "Abrir sitio web de {name}",
+      emptyTitle: "No se encontraron festivales.",
+      emptyHint: "El agente esta buscando festivales adecuados.",
+    },
+  }[language]
 
   const formatDate = (start: string, end: string) => {
     const startDate = new Date(start)
     const endDate = new Date(end)
     const startDay = startDate.getDate()
     const endDay = endDate.getDate()
-    const month = startDate.toLocaleDateString("de-DE", { month: "2-digit" })
+    const month = startDate.toLocaleDateString(locale, { month: "2-digit" })
     const year = startDate.getFullYear()
     return `${startDay}.–${endDay}.${month}.${year}`
   }
@@ -70,22 +127,34 @@ export function FestivalTable({
   const getStatusBadge = (status: Festival["status"]) => {
     switch (status) {
       case "Neu":
-        return <Badge variant="secondary">Neu</Badge>
+        return <Badge variant="secondary">{getFestivalStatusLabel(status, language)}</Badge>
       case "Freigegeben":
-        return <Badge className="bg-success/20 text-success hover:bg-success/30">Freigegeben</Badge>
+        return (
+          <Badge className="bg-success/20 text-success hover:bg-success/30">
+            {getFestivalStatusLabel(status, language)}
+          </Badge>
+        )
       case "Ignoriert":
-        return <Badge variant="outline" className="text-muted-foreground">Ignoriert</Badge>
+        return (
+          <Badge variant="outline" className="text-muted-foreground">
+            {getFestivalStatusLabel(status, language)}
+          </Badge>
+        )
     }
   }
 
   const getSizeBadge = (size: Festival["size"]) => {
     switch (size) {
       case "Klein":
-        return <Badge variant="outline">Klein</Badge>
+        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
       case "Mittel":
-        return <Badge variant="outline">Mittel</Badge>
+        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
       case "Gross":
-        return <Badge variant="outline" className="border-primary/50 text-primary">Gross</Badge>
+        return (
+          <Badge variant="outline" className="border-primary/50 text-primary">
+            {getFestivalSizeLabel(size, language)}
+          </Badge>
+        )
     }
   }
 
@@ -112,34 +181,34 @@ export function FestivalTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[120px]">
-              <SortableHeader field="relevant">Agent aktiv</SortableHeader>
+              <SortableHeader field="relevant">{copy.agentActive}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="name">Festival</SortableHeader>
+              <SortableHeader field="name">{copy.festival}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="location">Ort</SortableHeader>
+              <SortableHeader field="location">{copy.location}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="dateStart">Datum</SortableHeader>
+              <SortableHeader field="dateStart">{copy.date}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="size">Groesse</SortableHeader>
+              <SortableHeader field="size">{copy.size}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="genre">Genres</SortableHeader>
+              <SortableHeader field="genre">{copy.genres}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="contactType">Kontakt</SortableHeader>
+              <SortableHeader field="contactType">{copy.contact}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="status">Status</SortableHeader>
+              <SortableHeader field="status">{copy.status}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="source">Quelle</SortableHeader>
+              <SortableHeader field="source">{copy.source}</SortableHeader>
             </TableHead>
             <TableHead>
-              <SortableHeader field="website">Links</SortableHeader>
+              <SortableHeader field="website">{copy.links}</SortableHeader>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -147,8 +216,8 @@ export function FestivalTable({
           {festivals.length === 0 ? (
             <TableRow>
               <TableCell colSpan={10} className="h-32 text-center">
-                <p className="text-muted-foreground">Keine Festivals gefunden.</p>
-                <p className="text-sm text-muted-foreground">Der Agent sucht aktuell nach passenden Festivals.</p>
+                <p className="text-muted-foreground">{copy.emptyTitle}</p>
+                <p className="text-sm text-muted-foreground">{copy.emptyHint}</p>
               </TableCell>
             </TableRow>
           ) : (
@@ -196,18 +265,27 @@ export function FestivalTable({
                 <TableCell>
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     {getContactIcon(festival.contactType)}
-                    <span className="text-sm">{festival.contactType}</span>
+                    <span className="text-sm">
+                      {getContactTypeLabel(festival.contactType, language)}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(festival.status)}</TableCell>
                 <TableCell>
                   <Badge variant={festival.source === "Similar Band" ? "default" : "outline"} className="text-xs">
-                    {festival.source}
+                    {getSourceLabel(festival.source, language)}
                   </Badge>
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="sm" asChild>
-                    <a href={festival.website} target="_blank" rel="noopener noreferrer" aria-label={`Website von ${festival.name}`}>
+                    <a
+                      href={festival.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={formatTemplate(copy.websiteAria, {
+                        name: festival.name,
+                      })}
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>

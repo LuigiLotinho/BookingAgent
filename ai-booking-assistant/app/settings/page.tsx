@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useLanguage } from "@/components/language-provider"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,9 +26,122 @@ import {
   Mail,
   Lock,
   Loader2,
+  Globe,
 } from "lucide-react"
 
 export default function SettingsPage() {
+  const { language } = useLanguage()
+
+  const copy = {
+    DE: {
+      title: "Einstellungen",
+      subtitle: "Konfiguriere den Agent und deine Praeferenzen.",
+      save: "Speichern",
+      saved: "Gespeichert",
+      savedDesc: "Deine Einstellungen wurden erfolgreich aktualisiert.",
+      error: "Fehler",
+      errorDesc: "Einstellungen konnten nicht gespeichert werden.",
+      languageTitle: "Sprache",
+      languageDesc: "Aendere die Sprache der Benutzeroberflaeche.",
+      mailTitle: "E-Mail Versand (Gmail)",
+      mailDesc: "Diese Daten werden verwendet, um Bewerbungen in deinem Namen zu versenden.",
+      gmailAddress: "Gmail Adresse",
+      appPassword: "Google App-Passwort",
+      appPasswordHint: "Nutze ein 16-stelliges App-Passwort aus deinem Google-Konto.",
+      agentTitle: "Agent-Kontrolle",
+      agentDesc: "Steuere den automatischen Booking-Agenten.",
+      agentActive: "Agent aktiv",
+      agentActiveHint: "Der Agent sucht aktiv nach Festivals und sendet Bewerbungen.",
+      similarBand: "Similar-Band-Feature",
+      similarBandHint: "Finde Festivals basierend auf aehnlichen Bands.",
+      notificationsTitle: "Benachrichtigungen",
+      notificationsDesc: "Wann moechtest du benachrichtigt werden?",
+      notifyNew: "Neue Festivals",
+      notifyNewHint: "Wenn neue relevante Festivals gefunden werden.",
+      notifySent: "Bewerbung gesendet",
+      notifySentHint: "Wenn eine Bewerbung erfolgreich versendet wurde.",
+      notifyError: "Fehler",
+      notifyErrorHint: "Wenn ein Fehler bei einer Bewerbung auftritt.",
+      securityTitle: "Sicherheit & Limits",
+      securityDesc: "Begrenze die automatischen Bewerbungen.",
+      maxPerMonth: "Max. Bewerbungen / Monat",
+      maxPerDay: "Max. Bewerbungen / Tag",
+      limitsHint:
+        "Diese Limits schuetzen dich davor, zu viele Bewerbungen auf einmal zu senden. Der Agent wird automatisch pausieren, wenn ein Limit erreicht ist.",
+    },
+    EN: {
+      title: "Settings",
+      subtitle: "Configure the agent and your preferences.",
+      save: "Save",
+      saved: "Saved",
+      savedDesc: "Your settings were updated successfully.",
+      error: "Error",
+      errorDesc: "Settings could not be saved.",
+      languageTitle: "Language",
+      languageDesc: "Change the interface language.",
+      mailTitle: "Email sending (Gmail)",
+      mailDesc: "These details are used to send applications on your behalf.",
+      gmailAddress: "Gmail address",
+      appPassword: "Google app password",
+      appPasswordHint: "Use a 16-character app password from your Google account.",
+      agentTitle: "Agent control",
+      agentDesc: "Control the automatic booking agent.",
+      agentActive: "Agent active",
+      agentActiveHint: "The agent searches for festivals and sends applications.",
+      similarBand: "Similar band feature",
+      similarBandHint: "Find festivals based on similar bands.",
+      notificationsTitle: "Notifications",
+      notificationsDesc: "When do you want to be notified?",
+      notifyNew: "New festivals",
+      notifyNewHint: "When new relevant festivals are found.",
+      notifySent: "Application sent",
+      notifySentHint: "When an application was sent successfully.",
+      notifyError: "Errors",
+      notifyErrorHint: "When an error occurs for an application.",
+      securityTitle: "Security & limits",
+      securityDesc: "Limit automated applications.",
+      maxPerMonth: "Max applications / month",
+      maxPerDay: "Max applications / day",
+      limitsHint:
+        "These limits protect you from sending too many applications at once. The agent will pause automatically when a limit is reached.",
+    },
+    ES: {
+      title: "Ajustes",
+      subtitle: "Configura el agente y tus preferencias.",
+      save: "Guardar",
+      saved: "Guardado",
+      savedDesc: "Tus ajustes se actualizaron correctamente.",
+      error: "Error",
+      errorDesc: "No se pudieron guardar los ajustes.",
+      languageTitle: "Idioma",
+      languageDesc: "Cambia el idioma de la interfaz.",
+      mailTitle: "Envio de correo (Gmail)",
+      mailDesc: "Estos datos se usan para enviar solicitudes en tu nombre.",
+      gmailAddress: "Direccion Gmail",
+      appPassword: "Contrasena de app de Google",
+      appPasswordHint: "Usa una contrasena de app de 16 caracteres de tu cuenta Google.",
+      agentTitle: "Control del agente",
+      agentDesc: "Controla el agente automatico de reservas.",
+      agentActive: "Agente activo",
+      agentActiveHint: "El agente busca festivales y envia solicitudes.",
+      similarBand: "Funcion de bandas similares",
+      similarBandHint: "Encuentra festivales basados en bandas similares.",
+      notificationsTitle: "Notificaciones",
+      notificationsDesc: "Cuando quieres recibir avisos?",
+      notifyNew: "Nuevos festivales",
+      notifyNewHint: "Cuando se encuentran festivales relevantes nuevos.",
+      notifySent: "Solicitud enviada",
+      notifySentHint: "Cuando una solicitud se envia correctamente.",
+      notifyError: "Errores",
+      notifyErrorHint: "Cuando ocurre un error con una solicitud.",
+      securityTitle: "Seguridad y limites",
+      securityDesc: "Limita las solicitudes automaticas.",
+      maxPerMonth: "Max solicitudes / mes",
+      maxPerDay: "Max solicitudes / dia",
+      limitsHint:
+        "Estos limites te protegen de enviar demasiadas solicitudes a la vez. El agente se pausara automaticamente cuando se alcance un limite.",
+    },
+  }[language]
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
@@ -64,14 +179,14 @@ export default function SettingsPage() {
     try {
       await settingsService.saveSettings(settings)
       toast({
-        title: "Gespeichert",
-        description: "Deine Einstellungen wurden erfolgreich aktualisiert.",
+        title: copy.saved,
+        description: copy.savedDesc,
       })
     } catch (error) {
       console.error("Error saving settings:", error)
       toast({
-        title: "Fehler",
-        description: "Einstellungen konnten nicht gespeichert werden.",
+        title: copy.error,
+        description: copy.errorDesc,
         variant: "destructive",
       })
     } finally {
@@ -102,16 +217,19 @@ export default function SettingsPage() {
               <div className="flex items-start gap-3">
                 <SidebarTrigger className="md:hidden" />
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Einstellungen</h1>
+                  <h1 className="text-2xl font-bold text-foreground">{copy.title}</h1>
                   <p className="text-muted-foreground">
-                    Konfiguriere den Agent und deine Praeferenzen.
+                    {copy.subtitle}
                   </p>
                 </div>
               </div>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Speichern
-              </Button>
+              <div className="flex items-center gap-3">
+                <LanguageSwitcher />
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {copy.save}
+                </Button>
+              </div>
             </div>
 
           <div className="space-y-6">
@@ -120,16 +238,16 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Mail className="h-5 w-5 text-primary" />
-                  E-Mail Versand (Gmail)
+                  {copy.mailTitle}
                 </CardTitle>
                 <CardDescription>
-                  Diese Daten werden verwendet, um Bewerbungen in deinem Namen zu versenden.
+                  {copy.mailDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="gmail_user">Gmail Adresse</Label>
+                    <Label htmlFor="gmail_user">{copy.gmailAddress}</Label>
                     <Input
                       id="gmail_user"
                       type="email"
@@ -139,7 +257,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gmail_app_password" data-title="Google App-Passwort (16 Zeichen)">Google App-Passwort</Label>
+                    <Label htmlFor="gmail_app_password" data-title="Google App-Passwort (16 Zeichen)">
+                      {copy.appPassword}
+                    </Label>
                     <div className="relative">
                       <Input
                         id="gmail_app_password"
@@ -151,10 +271,24 @@ export default function SettingsPage() {
                       <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Nutze ein 16-stelliges App-Passwort aus deinem Google-Konto.
+                      {copy.appPasswordHint}
                     </p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Language */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Globe className="h-5 w-5 text-primary" />
+                  {copy.languageTitle}
+                </CardTitle>
+                <CardDescription>{copy.languageDesc}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LanguageSwitcher />
               </CardContent>
             </Card>
 
@@ -163,18 +297,18 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Zap className="h-5 w-5 text-primary" />
-                  Agent-Kontrolle
+                  {copy.agentTitle}
                 </CardTitle>
                 <CardDescription>
-                  Steuere den automatischen Booking-Agenten.
+                  {copy.agentDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-base">Agent aktiv</Label>
+                    <Label className="text-base">{copy.agentActive}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Der Agent sucht aktiv nach Festivals und sendet Bewerbungen.
+                      {copy.agentActiveHint}
                     </p>
                   </div>
                   <Switch
@@ -189,10 +323,10 @@ export default function SettingsPage() {
                   <div className="space-y-0.5">
                     <Label className="text-base flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Similar-Band-Feature
+                      {copy.similarBand}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Finde Festivals basierend auf aehnlichen Bands.
+                      {copy.similarBandHint}
                     </p>
                   </div>
                   <Switch
@@ -208,18 +342,18 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Bell className="h-5 w-5 text-primary" />
-                  Benachrichtigungen
+                  {copy.notificationsTitle}
                 </CardTitle>
                 <CardDescription>
-                  Wann moechtest du benachrichtigt werden?
+                  {copy.notificationsDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Neue Festivals</Label>
+                    <Label>{copy.notifyNew}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Wenn neue relevante Festivals gefunden werden.
+                      {copy.notifyNewHint}
                     </p>
                   </div>
                   <Switch
@@ -232,9 +366,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Bewerbung gesendet</Label>
+                    <Label>{copy.notifySent}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Wenn eine Bewerbung erfolgreich versendet wurde.
+                      {copy.notifySentHint}
                     </p>
                   </div>
                   <Switch
@@ -247,9 +381,9 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Fehler</Label>
+                    <Label>{copy.notifyError}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Wenn ein Fehler bei einer Bewerbung auftritt.
+                      {copy.notifyErrorHint}
                     </p>
                   </div>
                   <Switch
@@ -265,16 +399,16 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Shield className="h-5 w-5 text-primary" />
-                  Sicherheit & Limits
+                  {copy.securityTitle}
                 </CardTitle>
                 <CardDescription>
-                  Begrenze die automatischen Bewerbungen.
+                  {copy.securityDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="max_per_month">Max. Bewerbungen / Monat</Label>
+                    <Label htmlFor="max_per_month">{copy.maxPerMonth}</Label>
                     <Input
                       id="max_per_month"
                       type="number"
@@ -286,7 +420,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="max_per_day">Max. Bewerbungen / Tag</Label>
+                    <Label htmlFor="max_per_day">{copy.maxPerDay}</Label>
                     <Input
                       id="max_per_day"
                       type="number"
@@ -300,8 +434,7 @@ export default function SettingsPage() {
 
                 <div className="rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">
-                    Diese Limits schuetzen dich davor, zu viele Bewerbungen auf einmal zu senden. 
-                    Der Agent wird automatisch pausieren, wenn ein Limit erreicht ist.
+                    {copy.limitsHint}
                   </p>
                 </div>
               </CardContent>

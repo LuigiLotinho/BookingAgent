@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ApplicationDrawer } from "@/components/application-drawer"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useLanguage } from "@/components/language-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,14 +31,90 @@ import {
 import { type Application } from "@/lib/mock-data"
 import { supabase } from "@/lib/supabase"
 import { Eye, Filter, AlertTriangle, XCircle, Loader2 } from "lucide-react"
+import { formatTemplate, getApplicationStatusLabel, getLanguageName } from "@/lib/i18n"
 
 export default function ApplicationsPage() {
+  const { language, locale, formatNumber } = useLanguage()
+
+  const copy = {
+    DE: {
+      title: "Bewerbungen",
+      subtitle: "Transparente Uebersicht aller gesendeten und geplanten Bewerbungen.",
+      errorTitle: "Fehlerhafte Bewerbungen ({count})",
+      errorIntro: "Die folgenden E-Mails konnten nicht zugestellt werden:",
+      details: "Details",
+      dismiss: "Ausblenden",
+      unknownError: "Unbekannter Fehler",
+      statusPlaceholder: "Status",
+      allStatus: "Alle Status",
+      languagePlaceholder: "Sprache",
+      allLanguages: "Alle Sprachen",
+      applicationsCount: "{count} Bewerbungen",
+      tableFestival: "Festival",
+      tableYear: "Jahrgang",
+      tableLanguage: "Sprache",
+      tableType: "Bewerbungsart",
+      tableStatus: "Status",
+      tableSentAt: "Gesendet am",
+      empty: "Keine Bewerbungen gefunden.",
+      notice:
+        "Hinweis: Antworten auf Bewerbungen werden nicht automatisch verarbeitet. Bitte pruefe regelmaessig dein E-Mail-Postfach.",
+    },
+    EN: {
+      title: "Applications",
+      subtitle: "Transparent overview of sent and planned applications.",
+      errorTitle: "Failed applications ({count})",
+      errorIntro: "The following emails could not be delivered:",
+      details: "Details",
+      dismiss: "Dismiss",
+      unknownError: "Unknown error",
+      statusPlaceholder: "Status",
+      allStatus: "All status",
+      languagePlaceholder: "Language",
+      allLanguages: "All languages",
+      applicationsCount: "{count} applications",
+      tableFestival: "Festival",
+      tableYear: "Year",
+      tableLanguage: "Language",
+      tableType: "Application type",
+      tableStatus: "Status",
+      tableSentAt: "Sent at",
+      empty: "No applications found.",
+      notice:
+        "Note: Replies to applications are not processed automatically. Please check your inbox regularly.",
+    },
+    ES: {
+      title: "Solicitudes",
+      subtitle: "Resumen transparente de solicitudes enviadas y planificadas.",
+      errorTitle: "Solicitudes fallidas ({count})",
+      errorIntro: "Los siguientes correos no se pudieron entregar:",
+      details: "Detalles",
+      dismiss: "Ocultar",
+      unknownError: "Error desconocido",
+      statusPlaceholder: "Estado",
+      allStatus: "Todos los estados",
+      languagePlaceholder: "Idioma",
+      allLanguages: "Todos los idiomas",
+      applicationsCount: "{count} solicitudes",
+      tableFestival: "Festival",
+      tableYear: "Ano",
+      tableLanguage: "Idioma",
+      tableType: "Tipo de solicitud",
+      tableStatus: "Estado",
+      tableSentAt: "Enviado el",
+      empty: "No se encontraron solicitudes.",
+      notice:
+        "Nota: Las respuestas a solicitudes no se procesan automaticamente. Revisa tu bandeja de entrada con frecuencia.",
+    },
+  }[language]
+
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [languageFilter, setLanguageFilter] = useState<string>("all")
+  const [dismissedErrorIds, setDismissedErrorIds] = useState<string[]>([])
 
   const fetchApplications = async () => {
     try {
@@ -62,6 +140,7 @@ export default function ApplicationsPage() {
       }))
 
       setApplications(mappedApps)
+      setDismissedErrorIds([])
     } catch (error) {
       console.error('Error fetching applications:', error)
     } finally {
@@ -79,7 +158,9 @@ export default function ApplicationsPage() {
     return matchesStatus && matchesLanguage
   })
 
-  const errorApplications = applications.filter((app) => app.status === "Fehler")
+  const errorApplications = applications.filter(
+    (app) => app.status === "Fehler" && !dismissedErrorIds.includes(app.id)
+  )
 
   const handleSelectApplication = (application: Application) => {
     setSelectedApplication(application)
@@ -89,19 +170,27 @@ export default function ApplicationsPage() {
   const getStatusBadge = (status: Application["status"]) => {
     switch (status) {
       case "Wartend":
-        return <Badge variant="secondary">Wartend</Badge>
+        return <Badge variant="secondary">{getApplicationStatusLabel(status, language)}</Badge>
       case "Vorgeschrieben":
-        return <Badge className="bg-primary/20 text-primary hover:bg-primary/30">Vorgeschrieben</Badge>
+        return (
+          <Badge className="bg-primary/20 text-primary hover:bg-primary/30">
+            {getApplicationStatusLabel(status, language)}
+          </Badge>
+        )
       case "Gesendet":
-        return <Badge className="bg-success/20 text-success hover:bg-success/30">Gesendet</Badge>
+        return (
+          <Badge className="bg-success/20 text-success hover:bg-success/30">
+            {getApplicationStatusLabel(status, language)}
+          </Badge>
+        )
       case "Fehler":
-        return <Badge variant="destructive">Fehler</Badge>
+        return <Badge variant="destructive">{getApplicationStatusLabel(status, language)}</Badge>
     }
   }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "–"
-    return new Date(dateString).toLocaleDateString("de-DE", {
+    return new Date(dateString).toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -120,11 +209,14 @@ export default function ApplicationsPage() {
               <div className="flex items-start gap-3">
                 <SidebarTrigger className="md:hidden" />
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Bewerbungen</h1>
+                  <h1 className="text-2xl font-bold text-foreground">{copy.title}</h1>
                   <p className="text-muted-foreground">
-                    Transparente Uebersicht aller gesendeten und geplanten Bewerbungen.
+                    {copy.subtitle}
                   </p>
                 </div>
+              </div>
+              <div className="flex items-center">
+                <LanguageSwitcher />
               </div>
             </div>
 
@@ -134,12 +226,14 @@ export default function ApplicationsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-destructive">
                   <AlertTriangle className="h-5 w-5" />
-                  Fehlerhafte Bewerbungen ({errorApplications.length})
+                  {formatTemplate(copy.errorTitle, {
+                    count: formatNumber(errorApplications.length),
+                  })}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Die folgenden E-Mails konnten nicht zugestellt werden:
+                  {copy.errorIntro}
                 </p>
                 <div className="space-y-3">
                   {errorApplications.map((app) => (
@@ -152,13 +246,28 @@ export default function ApplicationsPage() {
                         <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
                         <div>
                           <p className="font-medium text-foreground">{app.festivalName}</p>
-                          <p className="text-sm text-destructive">{app.errorMessage || "Unbekannter Fehler"}</p>
+                          <p className="text-sm text-destructive">
+                            {app.errorMessage || copy.unknownError}
+                          </p>
                           <p className="text-xs text-muted-foreground">{formatDate(app.sentAt)}</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="shrink-0 bg-transparent">
-                        Details
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="shrink-0 bg-transparent">
+                          {copy.details}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setDismissedErrorIds((prev) => [...prev, app.id])
+                          }}
+                        >
+                          {copy.dismiss}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -171,32 +280,33 @@ export default function ApplicationsPage() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={copy.statusPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Status</SelectItem>
-                <SelectItem value="Wartend">Wartend</SelectItem>
-                <SelectItem value="Vorgeschrieben">Vorgeschrieben</SelectItem>
-                <SelectItem value="Gesendet">Gesendet</SelectItem>
-                <SelectItem value="Fehler">Fehler</SelectItem>
+                <SelectItem value="all">{copy.allStatus}</SelectItem>
+                <SelectItem value="Wartend">{getApplicationStatusLabel("Wartend", language)}</SelectItem>
+                <SelectItem value="Vorgeschrieben">{getApplicationStatusLabel("Vorgeschrieben", language)}</SelectItem>
+                <SelectItem value="Gesendet">{getApplicationStatusLabel("Gesendet", language)}</SelectItem>
+                <SelectItem value="Fehler">{getApplicationStatusLabel("Fehler", language)}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={languageFilter} onValueChange={setLanguageFilter}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Sprache" />
+                <SelectValue placeholder={copy.languagePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle Sprachen</SelectItem>
-                <SelectItem value="DE">Deutsch</SelectItem>
-                <SelectItem value="EN">Englisch</SelectItem>
-                <SelectItem value="FR">Franzoesisch</SelectItem>
-                <SelectItem value="ES">Spanisch</SelectItem>
+                <SelectItem value="all">{copy.allLanguages}</SelectItem>
+                <SelectItem value="DE">{getLanguageName("DE", language)}</SelectItem>
+                <SelectItem value="EN">{getLanguageName("EN", language)}</SelectItem>
+                <SelectItem value="ES">{getLanguageName("ES", language)}</SelectItem>
               </SelectContent>
             </Select>
 
             <span className="text-sm text-muted-foreground sm:ml-auto">
-              {filteredApplications.length} Bewerbungen
+              {formatTemplate(copy.applicationsCount, {
+                count: formatNumber(filteredApplications.length),
+              })}
             </span>
           </div>
 
@@ -211,12 +321,12 @@ export default function ApplicationsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Festival</TableHead>
-                      <TableHead>Jahrgang</TableHead>
-                      <TableHead>Sprache</TableHead>
-                      <TableHead>Bewerbungsart</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Gesendet am</TableHead>
+                      <TableHead>{copy.tableFestival}</TableHead>
+                      <TableHead>{copy.tableYear}</TableHead>
+                      <TableHead>{copy.tableLanguage}</TableHead>
+                      <TableHead>{copy.tableType}</TableHead>
+                      <TableHead>{copy.tableStatus}</TableHead>
+                      <TableHead>{copy.tableSentAt}</TableHead>
                       <TableHead className="w-[80px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -224,7 +334,7 @@ export default function ApplicationsPage() {
                     {filteredApplications.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="h-32 text-center">
-                          <p className="text-muted-foreground">Keine Bewerbungen gefunden.</p>
+                          <p className="text-muted-foreground">{copy.empty}</p>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -261,8 +371,7 @@ export default function ApplicationsPage() {
           {/* Info Notice */}
           <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
             <p className="text-sm text-muted-foreground">
-              Hinweis: Antworten auf Bewerbungen werden nicht automatisch verarbeitet. 
-              Bitte pruefe regelmaessig dein E-Mail-Postfach.
+              {copy.notice}
             </p>
           </div>
 

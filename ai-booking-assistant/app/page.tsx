@@ -1,6 +1,8 @@
 "use client"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useLanguage } from "@/components/language-provider"
 import {
   SidebarInset,
   SidebarProvider,
@@ -30,6 +32,7 @@ import {
   CheckCircle,
   Send,
   ArrowRight,
+  ArrowDown,
   Zap,
   MapPin,
   Calendar,
@@ -39,8 +42,109 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { formatTemplate, getFestivalSizeLabel } from "@/lib/i18n"
 
 export default function DashboardPage() {
+  const { language, locale, formatNumber } = useLanguage()
+
+  const copy = {
+    DE: {
+      title: "Dashboard",
+      subtitle: "Willkommen zurueck. Hier ist der aktuelle Stand.",
+      searchFestivals: "Festivals suchen",
+      agentLabel: "Bewerbungs-Agent",
+      active: "Aktiviert",
+      paused: "Pausiert",
+      kpiFound: "Gefundene Festivals",
+      kpiTotal: "Gesamtanzahl",
+      kpiRelevant: "Relevante Festivals",
+      kpiApproved: "Von dir freigegeben",
+      kpiSent: "Bewerbungen gesendet",
+      kpiSentTotal: "Gesamt gesendet",
+      newFestivalsTitle: "Neu gefundene Festivals",
+      showAll: "Alle anzeigen",
+      newFestivalsCount: "Es gibt {count} neue Festivals, die auf deine Freigabe warten.",
+      emptyFestivals: "Keine neuen Festivals gefunden.",
+      agentActive: "Agent aktiv",
+      festival: "Festival",
+      location: "Ort",
+      date: "Datum",
+      size: "Groesse",
+      genres: "Genres",
+      links: "Links",
+      websiteAria: "Website von {name} oeffnen",
+      progressProfile: "Beschreibe deine Band",
+      progressCrawler: "Finde automatisch die richtigen Festivals und Locations",
+      progressAgent: "Bewerbe dich automatisch regelmaessig auf die Festivals und Locations",
+      progressProfileLink: "Zum Band-Profil",
+      progressCrawlerLink: "Zu Festivals",
+      progressAgentLink: "Zu Bewerbungen",
+    },
+    EN: {
+      title: "Dashboard",
+      subtitle: "Welcome back. Here is the current status.",
+      searchFestivals: "Search festivals",
+      agentLabel: "Application Agent",
+      active: "Enabled",
+      paused: "Paused",
+      kpiFound: "Festivals found",
+      kpiTotal: "Total",
+      kpiRelevant: "Relevant festivals",
+      kpiApproved: "Approved by you",
+      kpiSent: "Applications sent",
+      kpiSentTotal: "Total sent",
+      newFestivalsTitle: "New festivals",
+      showAll: "Show all",
+      newFestivalsCount: "{count} new festivals are waiting for your approval.",
+      emptyFestivals: "No new festivals found.",
+      agentActive: "Agent active",
+      festival: "Festival",
+      location: "Location",
+      date: "Date",
+      size: "Size",
+      genres: "Genres",
+      links: "Links",
+      websiteAria: "Open website for {name}",
+      progressProfile: "Describe your band",
+      progressCrawler: "Find the right festivals and locations automatically",
+      progressAgent: "Apply automatically and regularly to the festivals and locations you want",
+      progressProfileLink: "Go to band profile",
+      progressCrawlerLink: "Go to festivals",
+      progressAgentLink: "Go to applications",
+    },
+    ES: {
+      title: "Panel",
+      subtitle: "Bienvenido de nuevo. Aqui esta el estado actual.",
+      searchFestivals: "Buscar festivales",
+      agentLabel: "Agente de Solicitudes",
+      active: "Activo",
+      paused: "Pausado",
+      kpiFound: "Festivales encontrados",
+      kpiTotal: "Total",
+      kpiRelevant: "Festivales relevantes",
+      kpiApproved: "Aprobados por ti",
+      kpiSent: "Solicitudes enviadas",
+      kpiSentTotal: "Total enviadas",
+      newFestivalsTitle: "Festivales nuevos",
+      showAll: "Ver todos",
+      newFestivalsCount: "{count} festivales nuevos esperan tu aprobacion.",
+      emptyFestivals: "No se encontraron festivales nuevos.",
+      agentActive: "Agente activo",
+      festival: "Festival",
+      location: "Lugar",
+      date: "Fecha",
+      size: "Tamano",
+      genres: "Generos",
+      links: "Enlaces",
+      websiteAria: "Abrir sitio web de {name}",
+      progressProfile: "Describe tu banda",
+      progressCrawler: "Encuentra automaticamente los festivales y locations adecuados",
+      progressAgent: "Postulate automaticamente y regularmente a los festivales y locations",
+      progressProfileLink: "Ir al perfil de la banda",
+      progressCrawlerLink: "Ir a festivales",
+      progressAgentLink: "Ir a solicitudes",
+    },
+  }[language]
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalFestivals: 0,
@@ -51,17 +155,26 @@ export default function DashboardPage() {
   const [agentActive, setAgentActive] = useState(true)
   const [festivals, setFestivals] = useState<Festival[]>([])
   const [searching, setSearching] = useState(false)
+  const [hasProfileInfo, setHasProfileInfo] = useState(false)
 
   const loadDashboardData = async () => {
     try {
-      const [fetchedStats, fetchedFestivals] = await Promise.all([
+      const [fetchedStats, fetchedFestivals, fetchedProfile] = await Promise.all([
         festivalService.getStats(),
-        festivalService.getNewFestivals(5)
+        festivalService.getNewFestivals(5),
+        profileService.getProfile(),
       ])
       
       setStats(fetchedStats)
       setAgentActive(fetchedStats.agentActive)
       setFestivals(fetchedFestivals)
+      setHasProfileInfo(Boolean(
+        fetchedProfile &&
+          (fetchedProfile.name ||
+            fetchedProfile.email ||
+            fetchedProfile.contactPerson ||
+            fetchedProfile.genres?.length)
+      ))
     } catch (error) {
       console.error("Error loading dashboard data:", error)
     } finally {
@@ -132,7 +245,7 @@ export default function DashboardPage() {
     const endDate = new Date(end)
     const startDay = startDate.getDate()
     const endDay = endDate.getDate()
-    const month = startDate.toLocaleDateString("de-DE", { month: "2-digit" })
+    const month = startDate.toLocaleDateString(locale, { month: "2-digit" })
     const year = startDate.getFullYear()
     return `${startDay}.–${endDay}.${month}.${year}`
   }
@@ -140,13 +253,43 @@ export default function DashboardPage() {
   const getSizeBadge = (size: Festival["size"]) => {
     switch (size) {
       case "Klein":
-        return <Badge variant="outline">Klein</Badge>
+        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
       case "Mittel":
-        return <Badge variant="outline">Mittel</Badge>
+        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
       case "Gross":
-        return <Badge variant="outline" className="border-primary/50 text-primary">Gross</Badge>
+        return (
+          <Badge variant="outline" className="border-primary/50 text-primary">
+            {getFestivalSizeLabel(size, language)}
+          </Badge>
+        )
     }
   }
+
+  const crawlerActive = stats.totalFestivals > 0 || searching
+
+  const progressCards = [
+    {
+      id: "profile",
+      active: hasProfileInfo,
+      text: copy.progressProfile,
+      href: "/profile",
+      ariaLabel: copy.progressProfileLink,
+    },
+    {
+      id: "crawler",
+      active: crawlerActive,
+      text: copy.progressCrawler,
+      href: "/festivals",
+      ariaLabel: copy.progressCrawlerLink,
+    },
+    {
+      id: "agent",
+      active: agentActive,
+      text: copy.progressAgent,
+      href: "/applications",
+      ariaLabel: copy.progressAgentLink,
+    },
+  ]
 
   return (
     <SidebarProvider>
@@ -158,13 +301,14 @@ export default function DashboardPage() {
               <div className="flex items-start gap-3">
                 <SidebarTrigger className="md:hidden" />
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                  <h1 className="text-2xl font-bold text-foreground">{copy.title}</h1>
                   <p className="text-muted-foreground">
-                    Willkommen zurueck. Hier ist der aktuelle Stand.
+                    {copy.subtitle}
                   </p>
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <LanguageSwitcher />
                 <Button 
                   onClick={handleRunResearch} 
                   variant="outline" 
@@ -173,12 +317,12 @@ export default function DashboardPage() {
                   className="gap-2"
                 >
                   {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Festivals suchen
+                  {copy.searchFestivals}
                 </Button>
                 <Card className="flex flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Bewerbungs-Agent</span>
+                    <span className="text-sm font-medium">{copy.agentLabel}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Switch
@@ -186,19 +330,76 @@ export default function DashboardPage() {
                       onCheckedChange={setAgentActive}
                     />
                     <Badge variant={agentActive ? "default" : "secondary"}>
-                      {agentActive ? "Aktiviert" : "Pausiert"}
+                      {agentActive ? copy.active : copy.paused}
                     </Badge>
                   </div>
                 </Card>
               </div>
             </div>
 
+          {/* Progress Cards */}
+          <div className="mb-6 flex flex-col gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+            {progressCards.slice(0, 1).map((card) => (
+              <Link key={card.id} href={card.href} aria-label={card.ariaLabel} className="block">
+                <Card
+                  className={
+                    card.active
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-sky-200 bg-sky-50 text-sky-900"
+                  }
+                >
+                  <CardContent className="p-4 text-center">
+                    <p className="text-base font-semibold leading-relaxed md:text-lg">{card.text}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+            <div className="flex justify-center text-muted-foreground">
+              <ArrowRight className="hidden h-4 w-4 lg:block" />
+              <ArrowDown className="h-4 w-4 lg:hidden" />
+            </div>
+            {progressCards.slice(1, 2).map((card) => (
+              <Link key={card.id} href={card.href} aria-label={card.ariaLabel} className="block">
+                <Card
+                  className={
+                    card.active
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-sky-200 bg-sky-50 text-sky-900"
+                  }
+                >
+                  <CardContent className="p-4 text-center">
+                    <p className="text-base font-semibold leading-relaxed md:text-lg">{card.text}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+            <div className="flex justify-center text-muted-foreground">
+              <ArrowRight className="hidden h-4 w-4 lg:block" />
+              <ArrowDown className="h-4 w-4 lg:hidden" />
+            </div>
+            {progressCards.slice(2, 3).map((card) => (
+              <Link key={card.id} href={card.href} aria-label={card.ariaLabel} className="block">
+                <Card
+                  className={
+                    card.active
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-sky-200 bg-sky-50 text-sky-900"
+                  }
+                >
+                  <CardContent className="p-4 text-center">
+                    <p className="text-base font-semibold leading-relaxed md:text-lg">{card.text}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
           {/* KPI Cards */}
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Gefundene Festivals
+                  {copy.kpiFound}
                 </CardTitle>
                 <Music className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -207,7 +408,7 @@ export default function DashboardPage() {
                   {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.totalFestivals}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Gesamtanzahl
+                  {copy.kpiTotal}
                 </p>
               </CardContent>
             </Card>
@@ -215,7 +416,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Relevante Festivals
+                  {copy.kpiRelevant}
                 </CardTitle>
                 <CheckCircle className="h-4 w-4 text-success" />
               </CardHeader>
@@ -224,7 +425,7 @@ export default function DashboardPage() {
                   {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.relevantFestivals}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Von dir freigegeben
+                  {copy.kpiApproved}
                 </p>
               </CardContent>
             </Card>
@@ -232,7 +433,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Bewerbungen gesendet
+                  {copy.kpiSent}
                 </CardTitle>
                 <Send className="h-4 w-4 text-primary" />
               </CardHeader>
@@ -241,7 +442,7 @@ export default function DashboardPage() {
                   {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.applicationsSent}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Gesamt gesendet
+                  {copy.kpiSentTotal}
                 </p>
               </CardContent>
             </Card>
@@ -252,11 +453,11 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Music className="h-5 w-5 text-primary" />
-                Neu gefundene Festivals
+                {copy.newFestivalsTitle}
               </CardTitle>
               <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
                 <Link href="/festivals">
-                  Alle anzeigen
+                  {copy.showAll}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -269,27 +470,29 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    Es gibt {festivals.length} neue Festivals, die auf deine Freigabe warten.
+                    {formatTemplate(copy.newFestivalsCount, {
+                      count: formatNumber(festivals.length),
+                    })}
                   </p>
                   <div className="rounded-lg border border-border">
                     <div className="overflow-x-auto">
                       <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px]">Agent aktiv</TableHead>
-                          <TableHead>Festival</TableHead>
-                          <TableHead>Ort</TableHead>
-                          <TableHead>Datum</TableHead>
-                          <TableHead>Groesse</TableHead>
-                          <TableHead>Genres</TableHead>
-                          <TableHead>Links</TableHead>
+                          <TableHead className="w-[60px]">{copy.agentActive}</TableHead>
+                          <TableHead>{copy.festival}</TableHead>
+                          <TableHead>{copy.location}</TableHead>
+                          <TableHead>{copy.date}</TableHead>
+                          <TableHead>{copy.size}</TableHead>
+                          <TableHead>{copy.genres}</TableHead>
+                          <TableHead>{copy.links}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {festivals.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={7} className="h-24 text-center">
-                              <p className="text-muted-foreground">Keine neuen Festivals gefunden.</p>
+                              <p className="text-muted-foreground">{copy.emptyFestivals}</p>
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -333,7 +536,14 @@ export default function DashboardPage() {
                           <TableCell>
                             {festival.website && (
                               <Button variant="ghost" size="sm" asChild>
-                                <a href={festival.website} target="_blank" rel="noopener noreferrer" aria-label={`Website von ${festival.name}`}>
+                                <a
+                                  href={festival.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={formatTemplate(copy.websiteAria, {
+                                    name: festival.name,
+                                  })}
+                                >
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
                               </Button>

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/components/language-provider"
 import {
   Sidebar,
   SidebarContent,
@@ -22,16 +23,47 @@ import {
   Zap,
 } from "lucide-react"
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Festivals", href: "/festivals", icon: Music },
-  { name: "Bewerbungen", href: "/applications", icon: Send },
-  { name: "Band-Profil", href: "/profile", icon: User },
-  { name: "Einstellungen", href: "/settings", icon: Settings },
-]
-
 export function AppSidebar() {
   const pathname = usePathname()
+  const { language } = useLanguage()
+
+  const copy = {
+    DE: {
+      dashboard: "Dashboard",
+      festivals: "Festivals",
+      applications: "Bewerbungen",
+      profile: "Band-Profil",
+      settings: "Einstellungen",
+      agentStatus: "Agent Status",
+      active: "Aktiv",
+    },
+    EN: {
+      dashboard: "Dashboard",
+      festivals: "Festivals",
+      applications: "Applications",
+      profile: "Band Profile",
+      settings: "Settings",
+      agentStatus: "Agent Status",
+      active: "Active",
+    },
+    ES: {
+      dashboard: "Panel",
+      festivals: "Festivales",
+      applications: "Solicitudes",
+      profile: "Perfil de la Banda",
+      settings: "Ajustes",
+      agentStatus: "Estado del Agente",
+      active: "Activo",
+    },
+  }[language]
+
+  const navigation = [
+    { name: copy.dashboard, href: "/", icon: LayoutDashboard },
+    { name: copy.festivals, href: "/festivals", icon: Music },
+    { name: copy.applications, href: "/applications", icon: Send },
+    { name: copy.profile, href: "/profile", icon: User },
+    { name: copy.settings, href: "/settings", icon: Settings },
+  ]
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -64,10 +96,10 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4">
         <div className="rounded-lg bg-secondary/50 p-3">
-          <p className="text-xs font-medium text-muted-foreground">Agent Status</p>
+          <p className="text-xs font-medium text-muted-foreground">{copy.agentStatus}</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-success" />
-            <span className="text-sm font-medium text-foreground">Aktiv</span>
+            <span className="text-sm font-medium text-foreground">{copy.active}</span>
           </div>
         </div>
       </SidebarFooter>
