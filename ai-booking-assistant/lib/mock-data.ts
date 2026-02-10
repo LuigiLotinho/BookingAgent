@@ -1,3 +1,9 @@
+/** Genre mit Konfidenz (für Genre-Match-Analyse) */
+export interface DetectedGenre {
+  genre: string
+  confidence: 'explicit' | 'implicit'
+}
+
 export interface Festival {
   id: string
   name: string
@@ -15,13 +21,52 @@ export interface Festival {
   description?: string
   website?: string
   isRelevant: boolean
+  /** Erweiterte Felder (Crawler + Genre-Analyse) */
+  latitude?: number
+  longitude?: number
+  distanceKm?: number
+  applicationUrl?: string
+  applicationPeriod?: 'explicit' | 'estimated'
+  genresDetected?: DetectedGenre[]
+  genreMatchScore?: number
+  showcaseStatus?: boolean | 'unknown'
+  recommendation?: 'apply' | 'watch' | 'skip'
+  explanation?: string
+  sourceUrls?: string[]
+}
+
+export interface Venue {
+  id: string
+  name: string
+  location: string
+  country: string
+  distance: number
+  venueType: "Club" | "Bar" | "Konzertsaal" | "Open Air" | "Theater" | "Kulturzentrum" | "Sonstiges"
+  capacity?: number
+  genres: string[]
+  contactType: "E-Mail" | "Formular" | "Unbekannt"
+  contactEmail?: string
+  website?: string
+  facebookUrl?: string
+  instagramUrl?: string
+  tiktokUrl?: string
+  description?: string
+  status: "Neu" | "Freigegeben" | "Ignoriert"
+  source: "Keyword" | "Similar Band" | "Bandsintown" | "Social Media"
+  isRelevant: boolean
+  applyFrequency: "monthly" | "quarterly" | "on-demand"
+  lastAppliedAt?: string
+  recurring: boolean
 }
 
 export interface Application {
   id: string
-  festivalId: string
-  festivalName: string
-  year: number
+  festivalId?: string
+  venueId?: string
+  targetType: "Festival" | "Venue"
+  festivalName?: string
+  venueName?: string
+  year?: number // NULL for venues
   language: "DE" | "EN" | "FR" | "ES"
   applicationType: "E-Mail" | "Formular"
   status: "Wartend" | "Vorgeschrieben" | "Gesendet" | "Fehler"

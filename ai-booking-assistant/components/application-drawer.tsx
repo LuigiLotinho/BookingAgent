@@ -42,6 +42,8 @@ export function ApplicationDrawer({
       noContent: "Kein Inhalt verfuegbar.",
       notice:
         "Hinweis: Antworten auf diese Bewerbung werden nicht automatisch verarbeitet. Bitte pruefe dein E-Mail-Postfach regelmaessig.",
+      venue: "Veranstaltungsort",
+      festival: "Festival",
     },
     EN: {
       title: "Application: {name}",
@@ -54,6 +56,8 @@ export function ApplicationDrawer({
       noContent: "No content available.",
       notice:
         "Note: Replies to this application are not processed automatically. Please check your inbox regularly.",
+      venue: "Venue",
+      festival: "Festival",
     },
     ES: {
       title: "Solicitud: {name}",
@@ -66,6 +70,8 @@ export function ApplicationDrawer({
       noContent: "No hay contenido disponible.",
       notice:
         "Nota: Las respuestas a esta solicitud no se procesan automaticamente. Revisa tu bandeja de entrada con frecuencia.",
+      venue: "Lugar",
+      festival: "Festival",
     },
   }[language]
 
@@ -108,8 +114,17 @@ export function ApplicationDrawer({
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="text-left">
           <SheetTitle className="text-xl">
-            {formatTemplate(copy.title, { name: application.festivalName })}
+            {formatTemplate(copy.title, { 
+              name: application.targetType === 'Venue' 
+                ? (application.venueName || 'Unbekannt')
+                : (application.festivalName || 'Unbekannt')
+            })}
           </SheetTitle>
+          {application.targetType && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {application.targetType === 'Venue' ? copy.venue : copy.festival}
+            </p>
+          )}
         </SheetHeader>
 
         <div className="mt-6 space-y-6">

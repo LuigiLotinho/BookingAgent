@@ -88,8 +88,45 @@ export function getContactTypeLabel(type: string, language: LanguageCode) {
 
 const sourceMap: Record<string, { DE: string; EN: string; ES: string }> = {
   "Similar Band": { DE: "Aehnliche Band", EN: "Similar Band", ES: "Banda Similar" },
+  "Bandsintown": { DE: "Bandsintown", EN: "Bandsintown", ES: "Bandsintown" },
+  "Social Media": { DE: "Social Media", EN: "Social Media", ES: "Redes Sociales" },
 }
 
 export function getSourceLabel(source: string, language: LanguageCode) {
   return sourceMap[source]?.[language] || source
+}
+
+// Venue-specific labels
+const venueStatusMap: Record<string, { DE: string; EN: string; ES: string }> = {
+  Neu: { DE: "Neu", EN: "New", ES: "Nuevo" },
+  Freigegeben: { DE: "Freigegeben", EN: "Approved", ES: "Aprobado" },
+  Ignoriert: { DE: "Ignoriert", EN: "Ignored", ES: "Ignorado" },
+}
+
+export function getVenueStatusLabel(status: string, language: LanguageCode) {
+  return venueStatusMap[status]?.[language] || status
+}
+
+const venueTypeMap: Record<string, { DE: string; EN: string; ES: string }> = {
+  Club: { DE: "Club", EN: "Club", ES: "Club" },
+  Bar: { DE: "Bar", EN: "Bar", ES: "Bar" },
+  Konzertsaal: { DE: "Konzertsaal", EN: "Concert Hall", ES: "Sala de Conciertos" },
+  "Open Air": { DE: "Open Air", EN: "Open Air", ES: "Al Aire Libre" },
+  Theater: { DE: "Theater", EN: "Theater", ES: "Teatro" },
+  Kulturzentrum: { DE: "Kulturzentrum", EN: "Cultural Center", ES: "Centro Cultural" },
+  Sonstiges: { DE: "Sonstiges", EN: "Other", ES: "Otro" },
+}
+
+export function getVenueTypeLabel(type: string, language: LanguageCode) {
+  return venueTypeMap[type]?.[language] || type
+}
+
+const applyFrequencyMap: Record<string, { DE: string; EN: string; ES: string }> = {
+  monthly: { DE: "Monatlich", EN: "Monthly", ES: "Mensual" },
+  quarterly: { DE: "Vierteljaehrlich", EN: "Quarterly", ES: "Trimestral" },
+  "on-demand": { DE: "Auf Anfrage", EN: "On Demand", ES: "Bajo Demanda" },
+}
+
+export function getApplyFrequencyLabel(frequency: string, language: LanguageCode) {
+  return applyFrequencyMap[frequency]?.[language] || frequency
 }

@@ -49,8 +49,10 @@ export default function ApplicationsPage() {
       allStatus: "Alle Status",
       languagePlaceholder: "Sprache",
       allLanguages: "Alle Sprachen",
+      targetTypePlaceholder: "Typ",
+      allTargetTypes: "Alle Typen",
       applicationsCount: "{count} Bewerbungen",
-      tableFestival: "Festival",
+      tableTarget: "Ziel",
       tableYear: "Jahrgang",
       tableLanguage: "Sprache",
       tableType: "Bewerbungsart",
@@ -72,8 +74,10 @@ export default function ApplicationsPage() {
       allStatus: "All status",
       languagePlaceholder: "Language",
       allLanguages: "All languages",
+      targetTypePlaceholder: "Type",
+      allTargetTypes: "All types",
       applicationsCount: "{count} applications",
-      tableFestival: "Festival",
+      tableTarget: "Target",
       tableYear: "Year",
       tableLanguage: "Language",
       tableType: "Application type",
@@ -95,8 +99,10 @@ export default function ApplicationsPage() {
       allStatus: "Todos los estados",
       languagePlaceholder: "Idioma",
       allLanguages: "Todos los idiomas",
+      targetTypePlaceholder: "Tipo",
+      allTargetTypes: "Todos los tipos",
       applicationsCount: "{count} solicitudes",
-      tableFestival: "Festival",
+      tableTarget: "Objetivo",
       tableYear: "Ano",
       tableLanguage: "Idioma",
       tableType: "Tipo de solicitud",
@@ -114,6 +120,7 @@ export default function ApplicationsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [languageFilter, setLanguageFilter] = useState<string>("all")
+  const [targetTypeFilter, setTargetTypeFilter] = useState<string>("all")
   const [dismissedErrorIds, setDismissedErrorIds] = useState<string[]>([])
 
   const fetchApplications = async () => {
@@ -128,7 +135,10 @@ export default function ApplicationsPage() {
       const mappedApps: Application[] = (data || []).map(app => ({
         id: app.id,
         festivalId: app.festival_id,
+        venueId: app.venue_id,
+        targetType: app.target_type || 'Festival',
         festivalName: app.festival_name,
+        venueName: app.venue_name,
         year: app.year,
         language: app.language,
         applicationType: app.application_type,
@@ -155,7 +165,8 @@ export default function ApplicationsPage() {
   const filteredApplications = applications.filter((app) => {
     const matchesStatus = statusFilter === "all" || app.status === statusFilter
     const matchesLanguage = languageFilter === "all" || app.language === languageFilter
-    return matchesStatus && matchesLanguage
+    const matchesTargetType = targetTypeFilter === "all" || app.targetType === targetTypeFilter
+    return matchesStatus && matchesLanguage && matchesTargetType
   })
 
   const errorApplications = applications.filter(
@@ -245,7 +256,12 @@ export default function ApplicationsPage() {
                       <div className="flex items-start gap-3">
                         <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
                         <div>
-                          <p className="font-medium text-foreground">{app.festivalName}</p>
+                          <p className="font-medium text-foreground">
+                            {app.targetType === 'Venue' ? app.venueName : app.festivalName}
+                            {app.targetType === 'Venue' && (
+                              <Badge variant="outline" className="ml-2 text-xs">Venue</Badge>
+                            )}
+                          </p>
                           <p className="text-sm text-destructive">
                             {app.errorMessage || copy.unknownError}
                           </p>
@@ -303,6 +319,17 @@ export default function ApplicationsPage() {
               </SelectContent>
             </Select>
 
+            <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder={copy.targetTypePlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{copy.allTargetTypes}</SelectItem>
+                <SelectItem value="Festival">Festival</SelectItem>
+                <SelectItem value="Venue">Venue</SelectItem>
+              </SelectContent>
+            </Select>
+
             <span className="text-sm text-muted-foreground sm:ml-auto">
               {formatTemplate(copy.applicationsCount, {
                 count: formatNumber(filteredApplications.length),
@@ -321,7 +348,7 @@ export default function ApplicationsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{copy.tableFestival}</TableHead>
+                      <TableHead>{copy.tableTarget}</TableHead>
                       <TableHead>{copy.tableYear}</TableHead>
                       <TableHead>{copy.tableLanguage}</TableHead>
                       <TableHead>{copy.tableType}</TableHead>
@@ -344,8 +371,13 @@ export default function ApplicationsPage() {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleSelectApplication(application)}
                         >
-                          <TableCell className="font-medium">{application.festivalName}</TableCell>
-                          <TableCell>{application.year}</TableCell>
+                          <TableCell className="font-medium">
+                            {application.targetType === 'Venue' ? application.venueName : application.festivalName}
+                            {application.targetType === 'Venue' && (
+                              <Badge variant="outline" className="ml-2 text-xs">Venue</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{application.targetType === 'Festival' ? application.year : '–'}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{application.language}</Badge>
                           </TableCell>

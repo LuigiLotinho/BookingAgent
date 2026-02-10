@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { FestivalTable } from "@/components/festival-table"
-import { FestivalDrawer } from "@/components/festival-drawer"
+import { VenueTable } from "@/components/venue-table"
+import { VenueDrawer } from "@/components/venue-drawer"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
@@ -22,11 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { type Festival } from "@/lib/mock-data"
-import { festivalService } from "@/lib/services/festival-service"
-import { processApplicationAction } from "@/lib/actions/application-actions"
-import { runResearchAction } from "@/lib/actions/research-actions"
-import { supabase } from "@/lib/supabase"
+import { type Venue } from "@/lib/mock-data"
+import { venueService } from "@/lib/services/venue-service"
+import { processVenueApplicationAction } from "@/lib/actions/application-actions"
 import {
   Search,
   Filter,
@@ -34,11 +32,11 @@ import {
   X,
   Loader2,
   MapPin,
-  Calendar,
   Mail,
   FileText,
   HelpCircle,
   ExternalLink,
+  Users,
 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -52,8 +50,8 @@ import {
 import {
   formatTemplate,
   getContactTypeLabel,
-  getFestivalSizeLabel,
-  getFestivalStatusLabel,
+  getVenueTypeLabel,
+  getVenueStatusLabel,
   getSourceLabel,
 } from "@/lib/i18n"
 
@@ -61,8 +59,8 @@ type SortField =
   | "relevant"
   | "name"
   | "location"
-  | "dateStart"
-  | "size"
+  | "venueType"
+  | "capacity"
   | "genre"
   | "contactType"
   | "status"
@@ -70,23 +68,22 @@ type SortField =
   | "website"
 type SortDirection = "asc" | "desc"
 
-const sizeOrder = { Klein: 1, Mittel: 2, Gross: 3 }
 const statusOrder = { Neu: 1, Freigegeben: 2, Ignoriert: 3 }
 
-const FestivalsPage = () => {
+const VenuesPage = () => {
   const { language, locale, formatNumber } = useLanguage()
 
   const copy = {
     DE: {
-      title: "Festivals",
-      subtitle: "Aktiviere den automatischen Bewerbungs-Agent fuer passende Festivals.",
-      searchPlaceholder: "Festival oder Ort suchen...",
+      title: "Veranstaltungsorte",
+      subtitle: "Aktiviere den automatischen Bewerbungs-Agent fuer passende Veranstaltungsorte.",
+      searchPlaceholder: "Veranstaltungsort oder Ort suchen...",
       country: "Land",
       allCountries: "Alle Laender",
       status: "Status",
       allStatus: "Alle Status",
-      size: "Groesse",
-      allSizes: "Alle Groessen",
+      type: "Typ",
+      allTypes: "Alle Typen",
       filter: "Filter",
       done: "Fertig",
       sortBy: "Sortieren nach",
@@ -95,9 +92,9 @@ const FestivalsPage = () => {
       ascending: "Aufsteigend",
       descending: "Absteigend",
       agentActive: "Agent aktiv",
-      festival: "Festival",
+      venue: "Veranstaltungsort",
       location: "Ort",
-      date: "Datum",
+      capacity: "Kapazitaet",
       genres: "Genres",
       contact: "Kontakt",
       source: "Quelle",
@@ -105,33 +102,26 @@ const FestivalsPage = () => {
       websiteAria: "Website von {name} oeffnen",
       markAllRelevant: "Alle als relevant markieren",
       ignoreAll: "Alle ignorieren",
-      festivalsShown: "{count} Festivals angezeigt",
-      emptyTitle: "Keine Festivals gefunden.",
-      emptyHint: "Der Agent sucht aktuell nach passenden Festivals.",
+      venuesShown: "{count} Veranstaltungsorte angezeigt",
+      emptyTitle: "Keine Veranstaltungsorte gefunden.",
+      emptyHint: "Der Agent sucht aktuell nach passenden Veranstaltungsorten.",
       details: "Details",
       agentToggleLabel: "Agent fuer {name} aktivieren",
-      dateLabel: "Datum",
       locationLabel: "Ort",
       contactLabel: "Kontakt",
       applyAction: "Automatische Bewerbung aktivieren",
       applyActionActive: "Automatische Bewerbung aktiv",
-      searchFestivals: "Festivals suchen",
-      crawlerRunning: "Recherche läuft",
-      crawlerDuration: "Kann 2–5 Minuten dauern.",
-      crawlerStep1: "Suche Festivals",
-      crawlerStep2: "Prüfe Relevanz",
-      crawlerStep3: "Analysiere Genres",
     },
     EN: {
-      title: "Festivals",
-      subtitle: "Enable the automatic application agent for suitable festivals.",
-      searchPlaceholder: "Search festival or location...",
+      title: "Venues",
+      subtitle: "Enable the automatic application agent for suitable venues.",
+      searchPlaceholder: "Search venue or location...",
       country: "Country",
       allCountries: "All countries",
       status: "Status",
       allStatus: "All status",
-      size: "Size",
-      allSizes: "All sizes",
+      type: "Type",
+      allTypes: "All types",
       filter: "Filter",
       done: "Done",
       sortBy: "Sort by",
@@ -140,9 +130,9 @@ const FestivalsPage = () => {
       ascending: "Ascending",
       descending: "Descending",
       agentActive: "Agent active",
-      festival: "Festival",
+      venue: "Venue",
       location: "Location",
-      date: "Date",
+      capacity: "Capacity",
       genres: "Genres",
       contact: "Contact",
       source: "Source",
@@ -150,33 +140,26 @@ const FestivalsPage = () => {
       websiteAria: "Open website for {name}",
       markAllRelevant: "Mark all as relevant",
       ignoreAll: "Ignore all",
-      festivalsShown: "{count} festivals shown",
-      emptyTitle: "No festivals found.",
-      emptyHint: "The agent is currently searching for suitable festivals.",
+      venuesShown: "{count} venues shown",
+      emptyTitle: "No venues found.",
+      emptyHint: "The agent is currently searching for suitable venues.",
       details: "Details",
       agentToggleLabel: "Activate agent for {name}",
-      dateLabel: "Date",
       locationLabel: "Location",
       contactLabel: "Contact",
       applyAction: "Enable automatic application",
       applyActionActive: "Automatic application active",
-      searchFestivals: "Search festivals",
-      crawlerRunning: "Search in progress",
-      crawlerDuration: "May take 2–5 minutes.",
-      crawlerStep1: "Searching festivals",
-      crawlerStep2: "Checking relevance",
-      crawlerStep3: "Analyzing genres",
     },
     ES: {
-      title: "Festivales",
-      subtitle: "Activa el agente automatico de solicitudes para festivales adecuados.",
-      searchPlaceholder: "Buscar festival o lugar...",
+      title: "Lugares",
+      subtitle: "Activa el agente automatico de solicitudes para lugares adecuados.",
+      searchPlaceholder: "Buscar lugar o ubicacion...",
       country: "Pais",
       allCountries: "Todos los paises",
       status: "Estado",
       allStatus: "Todos los estados",
-      size: "Tamano",
-      allSizes: "Todos los tamanos",
+      type: "Tipo",
+      allTypes: "Todos los tipos",
       filter: "Filtro",
       done: "Listo",
       sortBy: "Ordenar por",
@@ -185,9 +168,9 @@ const FestivalsPage = () => {
       ascending: "Ascendente",
       descending: "Descendente",
       agentActive: "Agente activo",
-      festival: "Festival",
+      venue: "Lugar",
       location: "Lugar",
-      date: "Fecha",
+      capacity: "Capacidad",
       genres: "Generos",
       contact: "Contacto",
       source: "Fuente",
@@ -195,82 +178,55 @@ const FestivalsPage = () => {
       websiteAria: "Abrir sitio web de {name}",
       markAllRelevant: "Marcar todos como relevantes",
       ignoreAll: "Ignorar todos",
-      festivalsShown: "{count} festivales mostrados",
-      emptyTitle: "No se encontraron festivales.",
-      emptyHint: "El agente esta buscando festivales adecuados.",
+      venuesShown: "{count} lugares mostrados",
+      emptyTitle: "No se encontraron lugares.",
+      emptyHint: "El agente esta buscando lugares adecuados.",
       details: "Detalles",
       agentToggleLabel: "Activar agente para {name}",
-      dateLabel: "Fecha",
       locationLabel: "Lugar",
       contactLabel: "Contacto",
       applyAction: "Activar solicitud automatica",
       applyActionActive: "Solicitud automatica activa",
-      searchFestivals: "Buscar festivales",
-      crawlerRunning: "Búsqueda en curso",
-      crawlerDuration: "Puede tardar 2–5 minutos.",
-      crawlerStep1: "Buscando festivales",
-      crawlerStep2: "Comprobando relevancia",
-      crawlerStep3: "Analizando géneros",
     },
   }[language]
 
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
-  const [festivals, setFestivals] = useState<Festival[]>([])
-  const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null)
+  const [venues, setVenues] = useState<Venue[]>([])
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [countryFilter, setCountryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [sizeFilter, setSizeFilter] = useState<string>("all")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
   const [filterOpen, setFilterOpen] = useState(false)
-  const [sortField, setSortField] = useState<SortField>("dateStart")
+  const [sortField, setSortField] = useState<SortField>("name")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
-  const [searching, setSearching] = useState(false)
-
-  const handleRunResearch = async () => {
-    setSearching(true)
-    try {
-      const { data: profiles } = await supabase.from("profiles").select("id").limit(1)
-      if (profiles?.[0]) {
-        const result = await runResearchAction(profiles[0].id)
-        if (!result.success && result.error) {
-          console.error("Recherche fehlgeschlagen:", result.error)
-        }
-        const data = await festivalService.getFestivals()
-        setFestivals(data)
-      }
-    } catch (error) {
-      console.error("Error running research:", error)
-    } finally {
-      setSearching(false)
-    }
-  }
 
   useEffect(() => {
-    async function loadFestivals() {
+    async function loadVenues() {
       try {
-        const data = await festivalService.getFestivals()
-        setFestivals(data)
+        const data = await venueService.getVenues()
+        setVenues(data)
       } catch (error) {
-        console.error("Error loading festivals:", error)
+        console.error("Error loading venues:", error)
       } finally {
         setLoading(false)
       }
     }
-    loadFestivals()
+    loadVenues()
   }, [])
 
-  const filteredFestivals = festivals.filter((festival) => {
-    const matchesSearch = festival.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      festival.location.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCountry = countryFilter === "all" || festival.country === countryFilter
-    const matchesStatus = statusFilter === "all" || festival.status === statusFilter
-    const matchesSize = sizeFilter === "all" || festival.size === sizeFilter
-    return matchesSearch && matchesCountry && matchesStatus && matchesSize
+  const filteredVenues = venues.filter((venue) => {
+    const matchesSearch = venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      venue.location.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCountry = countryFilter === "all" || venue.country === countryFilter
+    const matchesStatus = statusFilter === "all" || venue.status === statusFilter
+    const matchesType = typeFilter === "all" || venue.venueType === typeFilter
+    return matchesSearch && matchesCountry && matchesStatus && matchesType
   })
 
-  const sortedFestivals = [...filteredFestivals].sort((a, b) => {
+  const sortedVenues = [...filteredVenues].sort((a, b) => {
     let comparison = 0
 
     switch (sortField) {
@@ -283,11 +239,11 @@ const FestivalsPage = () => {
       case "location":
         comparison = `${a.location}, ${a.country}`.localeCompare(`${b.location}, ${b.country}`)
         break
-      case "dateStart":
-        comparison = new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+      case "venueType":
+        comparison = a.venueType.localeCompare(b.venueType)
         break
-      case "size":
-        comparison = sizeOrder[a.size] - sizeOrder[b.size]
+      case "capacity":
+        comparison = (a.capacity || 0) - (b.capacity || 0)
         break
       case "genre":
         comparison = (a.genres[0] || "").localeCompare(b.genres[0] || "")
@@ -311,25 +267,26 @@ const FestivalsPage = () => {
     return sortDirection === "asc" ? comparison : -comparison
   })
 
-  const handleToggleRelevant = async (festivalId: string) => {
-    const festival = festivals.find(f => f.id === festivalId)
-    if (!festival) return
+  const handleToggleRelevant = async (venueId: string) => {
+    const venue = venues.find(v => v.id === venueId)
+    if (!venue) return
 
-    const newRelevant = !festival.isRelevant
+    const newRelevant = !venue.isRelevant
     
     // Optimistic update
-    setFestivals((prev) =>
-      prev.map((f) =>
-        f.id === festivalId
-          ? { ...f, isRelevant: newRelevant, status: newRelevant ? "Freigegeben" : "Neu" as any }
-          : f
+    setVenues((prev) =>
+      prev.map((v) =>
+        v.id === venueId
+          ? { ...v, isRelevant: newRelevant, status: newRelevant ? "Freigegeben" : "Neu" as any }
+          : v
       )
     )
 
     try {
-      await festivalService.toggleRelevance(festivalId, newRelevant)
+      await venueService.toggleRelevance(venueId, newRelevant)
       if (newRelevant) {
-        processApplicationAction(festivalId)
+        // Process application for venue when marked as relevant
+        processVenueApplicationAction(venueId)
       }
     } catch (error) {
       console.error("Error updating relevance:", error)
@@ -337,8 +294,8 @@ const FestivalsPage = () => {
     }
   }
 
-  const handleSelectFestival = (festival: Festival) => {
-    setSelectedFestival(festival)
+  const handleSelectVenue = (venue: Venue) => {
+    setSelectedVenue(venue)
     setDrawerOpen(true)
   }
 
@@ -352,16 +309,16 @@ const FestivalsPage = () => {
   }
 
   const handleMarkAllRelevant = async () => {
-    const updatePromises = filteredFestivals
-      .filter(f => !f.isRelevant)
-      .map(f => festivalService.toggleRelevance(f.id, true))
+    const updatePromises = filteredVenues
+      .filter(v => !v.isRelevant)
+      .map(v => venueService.toggleRelevance(v.id, true))
 
     // Optimistic update
-    setFestivals((prev) =>
-      prev.map((f) =>
-        filteredFestivals.some((ff) => ff.id === f.id)
-          ? { ...f, isRelevant: true, status: "Freigegeben" as any }
-          : f
+    setVenues((prev) =>
+      prev.map((v) =>
+        filteredVenues.some((vv) => vv.id === v.id)
+          ? { ...v, isRelevant: true, status: "Freigegeben" as any }
+          : v
       )
     )
 
@@ -373,30 +330,19 @@ const FestivalsPage = () => {
   }
 
   const handleIgnoreAll = async () => {
-    // This would need a specific bulk update in a real scenario
-    // For now we just update locally and could do multiple calls
-    setFestivals((prev) =>
-      prev.map((f) =>
-        filteredFestivals.some((ff) => ff.id === f.id) && !f.isRelevant
-          ? { ...f, status: "Ignoriert" as any }
-          : f
+    setVenues((prev) =>
+      prev.map((v) =>
+        filteredVenues.some((vv) => vv.id === v.id) && !v.isRelevant
+          ? { ...v, status: "Ignoriert" as any }
+          : v
       )
     )
   }
 
-  const countries = [...new Set(festivals.map((f) => f.country))]
+  const countries = [...new Set(venues.map((v) => v.country))]
+  const venueTypes = [...new Set(venues.map((v) => v.venueType))]
 
-  const formatDate = (start: string, end: string) => {
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-    const startDay = startDate.getDate()
-    const endDay = endDate.getDate()
-    const month = startDate.toLocaleDateString(locale, { month: "2-digit" })
-    const year = startDate.getFullYear()
-    return `${startDay}.–${endDay}.${month}.${year}`
-  }
-
-  const getContactIcon = (type: Festival["contactType"]) => {
+  const getContactIcon = (type: Venue["contactType"]) => {
     switch (type) {
       case "E-Mail":
         return <Mail className="h-4 w-4" />
@@ -407,35 +353,20 @@ const FestivalsPage = () => {
     }
   }
 
-  const getStatusBadge = (status: Festival["status"]) => {
+  const getStatusBadge = (status: Venue["status"]) => {
     switch (status) {
       case "Neu":
-        return <Badge variant="secondary">{getFestivalStatusLabel(status, language)}</Badge>
+        return <Badge variant="secondary">{getVenueStatusLabel(status, language)}</Badge>
       case "Freigegeben":
         return (
           <Badge className="bg-success/20 text-success hover:bg-success/30">
-            {getFestivalStatusLabel(status, language)}
+            {getVenueStatusLabel(status, language)}
           </Badge>
         )
       case "Ignoriert":
         return (
           <Badge variant="outline" className="text-muted-foreground">
-            {getFestivalStatusLabel(status, language)}
-          </Badge>
-        )
-    }
-  }
-
-  const getSizeBadge = (size: Festival["size"]) => {
-    switch (size) {
-      case "Klein":
-        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
-      case "Mittel":
-        return <Badge variant="outline">{getFestivalSizeLabel(size, language)}</Badge>
-      case "Gross":
-        return (
-          <Badge variant="outline" className="border-primary/50 text-primary">
-            {getFestivalSizeLabel(size, language)}
+            {getVenueStatusLabel(status, language)}
           </Badge>
         )
     }
@@ -457,51 +388,10 @@ const FestivalsPage = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={handleRunResearch}
-                  variant="outline"
-                  size="sm"
-                  disabled={searching || loading}
-                  className="gap-2"
-                >
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  {copy.searchFestivals}
-                </Button>
+              <div className="flex items-center">
                 <LanguageSwitcher />
               </div>
             </div>
-
-            {searching && (
-              <Card className="mb-6 border-primary/30 bg-primary/5">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground">{copy.crawlerRunning}</p>
-                      <p className="text-sm text-muted-foreground">{copy.crawlerDuration}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-primary/20">
-                    <div className="crawler-progress-bar h-full rounded-full bg-primary" />
-                  </div>
-                  <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <li className="flex items-center gap-1.5">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                      {copy.crawlerStep1}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <span className="crawler-step-dot-delay-1 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                      {copy.crawlerStep2}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <span className="crawler-step-dot-delay-2 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                      {copy.crawlerStep3}
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Filters */}
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
@@ -537,21 +427,23 @@ const FestivalsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{copy.allStatus}</SelectItem>
-                    <SelectItem value="Neu">{getFestivalStatusLabel("Neu", language)}</SelectItem>
-                    <SelectItem value="Freigegeben">{getFestivalStatusLabel("Freigegeben", language)}</SelectItem>
-                    <SelectItem value="Ignoriert">{getFestivalStatusLabel("Ignoriert", language)}</SelectItem>
+                    <SelectItem value="Neu">{getVenueStatusLabel("Neu", language)}</SelectItem>
+                    <SelectItem value="Freigegeben">{getVenueStatusLabel("Freigegeben", language)}</SelectItem>
+                    <SelectItem value="Ignoriert">{getVenueStatusLabel("Ignoriert", language)}</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder={copy.size} />
+                    <SelectValue placeholder={copy.type} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{copy.allSizes}</SelectItem>
-                    <SelectItem value="Klein">{getFestivalSizeLabel("Klein", language)}</SelectItem>
-                    <SelectItem value="Mittel">{getFestivalSizeLabel("Mittel", language)}</SelectItem>
-                    <SelectItem value="Gross">{getFestivalSizeLabel("Gross", language)}</SelectItem>
+                    <SelectItem value="all">{copy.allTypes}</SelectItem>
+                    {venueTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {getVenueTypeLabel(type, language)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -587,21 +479,23 @@ const FestivalsPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{copy.allStatus}</SelectItem>
-                        <SelectItem value="Neu">{getFestivalStatusLabel("Neu", language)}</SelectItem>
-                        <SelectItem value="Freigegeben">{getFestivalStatusLabel("Freigegeben", language)}</SelectItem>
-                        <SelectItem value="Ignoriert">{getFestivalStatusLabel("Ignoriert", language)}</SelectItem>
+                        <SelectItem value="Neu">{getVenueStatusLabel("Neu", language)}</SelectItem>
+                        <SelectItem value="Freigegeben">{getVenueStatusLabel("Freigegeben", language)}</SelectItem>
+                        <SelectItem value="Ignoriert">{getVenueStatusLabel("Ignoriert", language)}</SelectItem>
                       </SelectContent>
                     </Select>
 
-                    <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={copy.size} />
+                        <SelectValue placeholder={copy.type} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">{copy.allSizes}</SelectItem>
-                        <SelectItem value="Klein">{getFestivalSizeLabel("Klein", language)}</SelectItem>
-                        <SelectItem value="Mittel">{getFestivalSizeLabel("Mittel", language)}</SelectItem>
-                        <SelectItem value="Gross">{getFestivalSizeLabel("Gross", language)}</SelectItem>
+                        <SelectItem value="all">{copy.allTypes}</SelectItem>
+                        {venueTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {getVenueTypeLabel(type, language)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
 
@@ -620,10 +514,10 @@ const FestivalsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="relevant">{copy.agentActive}</SelectItem>
-                    <SelectItem value="name">{copy.festival}</SelectItem>
+                    <SelectItem value="name">{copy.venue}</SelectItem>
                     <SelectItem value="location">{copy.location}</SelectItem>
-                    <SelectItem value="dateStart">{copy.date}</SelectItem>
-                    <SelectItem value="size">{copy.size}</SelectItem>
+                    <SelectItem value="venueType">{copy.type}</SelectItem>
+                    <SelectItem value="capacity">{copy.capacity}</SelectItem>
                     <SelectItem value="genre">{copy.genres}</SelectItem>
                     <SelectItem value="contactType">{copy.contact}</SelectItem>
                     <SelectItem value="status">{copy.status}</SelectItem>
@@ -655,8 +549,8 @@ const FestivalsPage = () => {
               {copy.ignoreAll}
             </Button>
             <span className="text-sm text-muted-foreground sm:ml-4">
-              {formatTemplate(copy.festivalsShown, {
-                count: formatNumber(filteredFestivals.length),
+              {formatTemplate(copy.venuesShown, {
+                count: formatNumber(filteredVenues.length),
               })}
             </span>
           </div>
@@ -669,31 +563,31 @@ const FestivalsPage = () => {
           ) : (
             <>
               <div className="md:hidden">
-                {sortedFestivals.length === 0 ? (
+                {sortedVenues.length === 0 ? (
                   <div className="rounded-lg border border-border bg-muted/30 p-6 text-center">
                     <p className="text-muted-foreground">{copy.emptyTitle}</p>
                     <p className="text-sm text-muted-foreground">{copy.emptyHint}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {sortedFestivals.map((festival) => (
+                    {sortedVenues.map((venue) => (
                       <Card
-                        key={festival.id}
+                        key={venue.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSelectFestival(festival)}
+                        onClick={() => handleSelectVenue(venue)}
                       >
                         <CardHeader className="pb-2">
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <h3 className="text-base font-semibold">{festival.name}</h3>
-                                {getStatusBadge(festival.status)}
+                                <h3 className="text-base font-semibold">{venue.name}</h3>
+                                {getStatusBadge(venue.status)}
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={festival.source === "Similar Band" ? "default" : "outline"} className="text-xs">
-                                  {getSourceLabel(festival.source, language)}
+                                <Badge variant={venue.source === "Similar Band" ? "default" : "outline"} className="text-xs">
+                                  {getSourceLabel(venue.source, language)}
                                 </Badge>
-                                {getSizeBadge(festival.size)}
+                                <Badge variant="outline">{getVenueTypeLabel(venue.venueType, language)}</Badge>
                               </div>
                             </div>
                           </div>
@@ -701,26 +595,28 @@ const FestivalsPage = () => {
                         <CardContent className="space-y-3 text-sm">
                           <div className="flex items-start gap-2 text-muted-foreground">
                             <MapPin className="mt-0.5 h-4 w-4" />
-                            <span>{festival.location}, {festival.country}</span>
-                            <span className="ml-auto text-xs">{festival.distance} km</span>
+                            <span>{venue.location}, {venue.country}</span>
+                            <span className="ml-auto text-xs">{venue.distance} km</span>
                           </div>
+                          {venue.capacity && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Users className="h-4 w-4" />
+                              <span>{copy.capacity}: {venue.capacity}</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{formatDate(festival.dateStart, festival.dateEnd)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            {getContactIcon(festival.contactType)}
-                            <span>{getContactTypeLabel(festival.contactType, language)}</span>
+                            {getContactIcon(venue.contactType)}
+                            <span>{getContactTypeLabel(venue.contactType, language)}</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {festival.genres.slice(0, 2).map((genre) => (
+                            {venue.genres.slice(0, 2).map((genre) => (
                               <Badge key={genre} variant="secondary" className="text-xs">
                                 {genre}
                               </Badge>
                             ))}
-                            {festival.genres.length > 2 && (
+                            {venue.genres.length > 2 && (
                               <Badge variant="secondary" className="text-xs">
-                                +{festival.genres.length - 2}
+                                +{venue.genres.length - 2}
                               </Badge>
                             )}
                           </div>
@@ -728,20 +624,20 @@ const FestivalsPage = () => {
                             <Button
                               size="lg"
                               className={
-                                festival.isRelevant
+                                venue.isRelevant
                                   ? "w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                                   : "w-full"
                               }
-                              variant={festival.isRelevant ? "default" : "outline"}
+                              variant={venue.isRelevant ? "default" : "outline"}
                               onClick={(event) => {
                                 event.stopPropagation()
-                                handleToggleRelevant(festival.id)
+                                handleToggleRelevant(venue.id)
                               }}
                               aria-label={formatTemplate(copy.agentToggleLabel, {
-                                name: festival.name,
+                                name: venue.name,
                               })}
                             >
-                              {festival.isRelevant ? copy.applyActionActive : copy.applyAction}
+                              {venue.isRelevant ? copy.applyActionActive : copy.applyAction}
                             </Button>
                             <div className="flex items-center justify-between gap-3">
                             <Button
@@ -749,12 +645,12 @@ const FestivalsPage = () => {
                               size="sm"
                               onClick={(event) => {
                                 event.stopPropagation()
-                                handleSelectFestival(festival)
+                                handleSelectVenue(venue)
                               }}
                             >
                               {copy.details}
                             </Button>
-                            {festival.website && (
+                            {venue.website && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -762,11 +658,11 @@ const FestivalsPage = () => {
                                 onClick={(event) => event.stopPropagation()}
                               >
                                 <a
-                                  href={festival.website}
+                                  href={venue.website}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   aria-label={formatTemplate(copy.websiteAria, {
-                                    name: festival.name,
+                                    name: venue.name,
                                   })}
                                 >
                                   <ExternalLink className="h-4 w-4" />
@@ -783,10 +679,10 @@ const FestivalsPage = () => {
               </div>
 
               <div className="hidden md:block">
-                <FestivalTable
-                  festivals={sortedFestivals}
+                <VenueTable
+                  venues={sortedVenues}
                   onToggleRelevant={handleToggleRelevant}
-                  onSelectFestival={handleSelectFestival}
+                  onSelectVenue={handleSelectVenue}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSortChange={handleSortChange}
@@ -794,8 +690,8 @@ const FestivalsPage = () => {
               </div>
 
               {/* Drawer */}
-              <FestivalDrawer
-                festival={selectedFestival}
+              <VenueDrawer
+                venue={selectedVenue}
                 open={drawerOpen}
                 onOpenChange={setDrawerOpen}
                 onToggleRelevant={handleToggleRelevant}
@@ -810,14 +706,13 @@ const FestivalsPage = () => {
 }
 
 export const unstable_settings = {
-  // Ensure the component is wrapped in a Suspense boundary
   suspense: true,
 }
 
 export default function Page() {
   return (
     <Suspense fallback={<Loading />}>
-      <FestivalsPage />
+      <VenuesPage />
     </Suspense>
   )
 }

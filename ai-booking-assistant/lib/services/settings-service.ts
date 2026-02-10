@@ -10,6 +10,9 @@ export interface AppSettings {
   notify_errors: boolean;
   max_per_month: number;
   max_per_day: number;
+  enable_venue_crawling?: boolean;
+  venue_apply_frequency?: 'monthly' | 'quarterly' | 'on-demand';
+  max_venues_per_crawl?: number;
 }
 
 const DEFAULT_ID = '00000000-0000-0000-0000-000000000000';

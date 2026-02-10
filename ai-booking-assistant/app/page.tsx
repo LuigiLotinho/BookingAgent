@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/table"
 import { mockStats, mockFestivals, type Festival } from "@/lib/mock-data"
 import { festivalService } from "@/lib/services/festival-service"
-import { rechercheService } from "@/lib/services/recherche-service"
+import { venueService } from "@/lib/services/venue-service"
 import { profileService } from "@/lib/services/profile-service"
 import { processApplicationAction } from "@/lib/actions/application-actions"
+import { runResearchAction } from "@/lib/actions/research-actions"
 import { supabase } from "@/lib/supabase"
 import {
   Music,
@@ -61,6 +62,8 @@ export default function DashboardPage() {
       kpiApproved: "Von dir freigegeben",
       kpiSent: "Bewerbungen gesendet",
       kpiSentTotal: "Gesamt gesendet",
+      kpiVenuesFound: "Gefundene Veranstaltungsorte",
+      kpiVenuesRelevant: "Relevante Veranstaltungsorte",
       newFestivalsTitle: "Neu gefundene Festivals",
       showAll: "Alle anzeigen",
       newFestivalsCount: "Es gibt {count} neue Festivals, die auf deine Freigabe warten.",
@@ -79,6 +82,11 @@ export default function DashboardPage() {
       progressProfileLink: "Zum Band-Profil",
       progressCrawlerLink: "Zu Festivals",
       progressAgentLink: "Zu Bewerbungen",
+      crawlerRunning: "Recherche läuft",
+      crawlerDuration: "Kann 2–5 Minuten dauern.",
+      crawlerStep1: "Suche Festivals",
+      crawlerStep2: "Prüfe Relevanz",
+      crawlerStep3: "Analysiere Genres",
     },
     EN: {
       title: "Dashboard",
@@ -93,6 +101,8 @@ export default function DashboardPage() {
       kpiApproved: "Approved by you",
       kpiSent: "Applications sent",
       kpiSentTotal: "Total sent",
+      kpiVenuesFound: "Venues found",
+      kpiVenuesRelevant: "Relevant venues",
       newFestivalsTitle: "New festivals",
       showAll: "Show all",
       newFestivalsCount: "{count} new festivals are waiting for your approval.",
@@ -111,6 +121,11 @@ export default function DashboardPage() {
       progressProfileLink: "Go to band profile",
       progressCrawlerLink: "Go to festivals",
       progressAgentLink: "Go to applications",
+      crawlerRunning: "Search in progress",
+      crawlerDuration: "May take 2–5 minutes.",
+      crawlerStep1: "Searching festivals",
+      crawlerStep2: "Checking relevance",
+      crawlerStep3: "Analyzing genres",
     },
     ES: {
       title: "Panel",
@@ -125,6 +140,8 @@ export default function DashboardPage() {
       kpiApproved: "Aprobados por ti",
       kpiSent: "Solicitudes enviadas",
       kpiSentTotal: "Total enviadas",
+      kpiVenuesFound: "Lugares encontrados",
+      kpiVenuesRelevant: "Lugares relevantes",
       newFestivalsTitle: "Festivales nuevos",
       showAll: "Ver todos",
       newFestivalsCount: "{count} festivales nuevos esperan tu aprobacion.",
@@ -143,6 +160,11 @@ export default function DashboardPage() {
       progressProfileLink: "Ir al perfil de la banda",
       progressCrawlerLink: "Ir a festivales",
       progressAgentLink: "Ir a solicitudes",
+      crawlerRunning: "Búsqueda en curso",
+      crawlerDuration: "Puede tardar 2–5 minutos.",
+      crawlerStep1: "Buscando festivales",
+      crawlerStep2: "Comprobando relevancia",
+      crawlerStep3: "Analizando géneros",
     },
   }[language]
   const [loading, setLoading] = useState(true)
@@ -151,6 +173,8 @@ export default function DashboardPage() {
     relevantFestivals: 0,
     applicationsSent: 0,
     agentActive: true,
+    totalVenues: 0,
+    relevantVenues: 0,
   })
   const [agentActive, setAgentActive] = useState(true)
   const [festivals, setFestivals] = useState<Festival[]>([])
@@ -159,14 +183,19 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      const [fetchedStats, fetchedFestivals, fetchedProfile] = await Promise.all([
+      const [fetchedFestivalStats, fetchedVenueStats, fetchedFestivals, fetchedProfile] = await Promise.all([
         festivalService.getStats(),
+        venueService.getStats(),
         festivalService.getNewFestivals(5),
         profileService.getProfile(),
       ])
       
-      setStats(fetchedStats)
-      setAgentActive(fetchedStats.agentActive)
+      setStats({
+        ...fetchedFestivalStats,
+        totalVenues: fetchedVenueStats.totalVenues,
+        relevantVenues: fetchedVenueStats.relevantVenues,
+      })
+      setAgentActive(fetchedFestivalStats.agentActive)
       setFestivals(fetchedFestivals)
       setHasProfileInfo(Boolean(
         fetchedProfile &&
@@ -186,18 +215,17 @@ export default function DashboardPage() {
     loadDashboardData()
   }, [])
 
+  /** Scraper/Recherche läuft nur beim Klick auf "Festivals suchen" – per Server Action (kein CORS). */
   const handleRunResearch = async () => {
     setSearching(true)
     try {
-      const profile = await profileService.getProfile()
-      if (profile) {
-        // We need the ID, but getProfile returns the mapped profile without ID for now.
-        // Let's adjust profileService or just fetch the first profile ID here.
-        const { data: profiles } = await supabase.from('profiles').select('id').limit(1)
-        if (profiles?.[0]) {
-          await rechercheService.runResearch(profiles[0].id)
-          await loadDashboardData()
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1)
+      if (profiles?.[0]) {
+        const result = await runResearchAction(profiles[0].id)
+        if (!result.success && result.error) {
+          console.error("Recherche fehlgeschlagen:", result.error)
         }
+        await loadDashboardData()
       }
     } catch (error) {
       console.error("Error running research:", error)
@@ -265,7 +293,7 @@ export default function DashboardPage() {
     }
   }
 
-  const crawlerActive = stats.totalFestivals > 0 || searching
+  const crawlerActive = (stats.totalFestivals > 0 || stats.totalVenues > 0) || searching
 
   const progressCards = [
     {
@@ -337,6 +365,38 @@ export default function DashboardPage() {
               </div>
             </div>
 
+          {/* Crawler-Fortschritt (während "Festivals suchen") */}
+          {searching && (
+            <Card className="mb-6 border-primary/30 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{copy.crawlerRunning}</p>
+                    <p className="text-sm text-muted-foreground">{copy.crawlerDuration}</p>
+                  </div>
+                </div>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-primary/20">
+                  <div className="crawler-progress-bar h-full rounded-full bg-primary" />
+                </div>
+                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    {copy.crawlerStep1}
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="crawler-step-dot-delay-1 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    {copy.crawlerStep2}
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="crawler-step-dot-delay-2 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    {copy.crawlerStep3}
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Progress Cards */}
           <div className="mb-6 flex flex-col gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
             {progressCards.slice(0, 1).map((card) => (
@@ -395,7 +455,7 @@ export default function DashboardPage() {
           </div>
 
           {/* KPI Cards */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -423,6 +483,40 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-3xl font-bold">
                   {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.relevantFestivals}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {copy.kpiApproved}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {copy.kpiVenuesFound}
+                </CardTitle>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.totalVenues}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {copy.kpiTotal}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {copy.kpiVenuesRelevant}
+                </CardTitle>
+                <CheckCircle className="h-4 w-4 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stats.relevantVenues}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {copy.kpiApproved}

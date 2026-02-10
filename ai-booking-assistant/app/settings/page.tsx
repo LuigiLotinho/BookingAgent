@@ -18,6 +18,13 @@ import {
 import { settingsService, type AppSettings } from "@/lib/services/settings-service"
 import { useToast } from "@/hooks/use-toast"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Zap,
   Bell,
   Shield,
@@ -27,6 +34,7 @@ import {
   Lock,
   Loader2,
   Globe,
+  Search,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -68,6 +76,17 @@ export default function SettingsPage() {
       maxPerDay: "Max. Bewerbungen / Tag",
       limitsHint:
         "Diese Limits schuetzen dich davor, zu viele Bewerbungen auf einmal zu senden. Der Agent wird automatisch pausieren, wenn ein Limit erreicht ist.",
+      crawlerTitle: "Crawler-Konfiguration",
+      crawlerDesc: "Einstellungen fuer die automatische Suche nach Festivals und Veranstaltungsorten.",
+      enableVenueCrawling: "Venue-Crawling aktivieren",
+      enableVenueCrawlingHint: "Der Crawler sucht automatisch nach Veranstaltungsorten ueber Bandsintown und aehnliche Bands.",
+      venueApplyFrequency: "Bewerbungsfrequenz fuer Venues",
+      venueApplyFrequencyHint: "Wie haeufig sollen Bewerbungen an Venues gesendet werden?",
+      monthly: "Monatlich",
+      quarterly: "Vierteljaehrlich",
+      onDemand: "Auf Anfrage",
+      maxVenuesPerCrawl: "Max. Venues pro Crawl",
+      maxVenuesPerCrawlHint: "Maximale Anzahl von Venues, die pro Crawl-Durchlauf gefunden werden sollen.",
     },
     EN: {
       title: "Settings",
@@ -104,6 +123,17 @@ export default function SettingsPage() {
       maxPerDay: "Max applications / day",
       limitsHint:
         "These limits protect you from sending too many applications at once. The agent will pause automatically when a limit is reached.",
+      crawlerTitle: "Crawler Configuration",
+      crawlerDesc: "Settings for automatic search of festivals and venues.",
+      enableVenueCrawling: "Enable venue crawling",
+      enableVenueCrawlingHint: "The crawler automatically searches for venues via Bandsintown and similar bands.",
+      venueApplyFrequency: "Application frequency for venues",
+      venueApplyFrequencyHint: "How often should applications be sent to venues?",
+      monthly: "Monthly",
+      quarterly: "Quarterly",
+      onDemand: "On Demand",
+      maxVenuesPerCrawl: "Max venues per crawl",
+      maxVenuesPerCrawlHint: "Maximum number of venues to be found per crawl run.",
     },
     ES: {
       title: "Ajustes",
@@ -140,6 +170,17 @@ export default function SettingsPage() {
       maxPerDay: "Max solicitudes / dia",
       limitsHint:
         "Estos limites te protegen de enviar demasiadas solicitudes a la vez. El agente se pausara automaticamente cuando se alcance un limite.",
+      crawlerTitle: "Configuracion del Crawler",
+      crawlerDesc: "Ajustes para la busqueda automatica de festivales y lugares.",
+      enableVenueCrawling: "Activar busqueda de lugares",
+      enableVenueCrawlingHint: "El crawler busca automaticamente lugares a traves de Bandsintown y bandas similares.",
+      venueApplyFrequency: "Frecuencia de solicitud para lugares",
+      venueApplyFrequencyHint: "Con que frecuencia se deben enviar solicitudes a lugares?",
+      monthly: "Mensual",
+      quarterly: "Trimestral",
+      onDemand: "Bajo Demanda",
+      maxVenuesPerCrawl: "Max lugares por busqueda",
+      maxVenuesPerCrawlHint: "Numero maximo de lugares que se encontraran por ejecucion del crawler.",
     },
   }[language]
   const [loading, setLoading] = useState(true)
@@ -156,6 +197,9 @@ export default function SettingsPage() {
     notify_errors: true,
     max_per_month: 50,
     max_per_day: 5,
+    enable_venue_crawling: true,
+    venue_apply_frequency: 'monthly',
+    max_venues_per_crawl: 50,
   })
 
   useEffect(() => {
@@ -435,6 +479,74 @@ export default function SettingsPage() {
                 <div className="rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">
                     {copy.limitsHint}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Crawler Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Search className="h-5 w-5 text-primary" />
+                  {copy.crawlerTitle}
+                </CardTitle>
+                <CardDescription>
+                  {copy.crawlerDesc}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">{copy.enableVenueCrawling}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {copy.enableVenueCrawlingHint}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.enable_venue_crawling ?? true}
+                    onCheckedChange={(checked) => setSettings({ ...settings, enable_venue_crawling: checked })}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label htmlFor="venue_apply_frequency">{copy.venueApplyFrequency}</Label>
+                  <Select
+                    value={settings.venue_apply_frequency || 'monthly'}
+                    onValueChange={(value: 'monthly' | 'quarterly' | 'on-demand') => 
+                      setSettings({ ...settings, venue_apply_frequency: value })
+                    }
+                  >
+                    <SelectTrigger id="venue_apply_frequency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">{copy.monthly}</SelectItem>
+                      <SelectItem value="quarterly">{copy.quarterly}</SelectItem>
+                      <SelectItem value="on-demand">{copy.onDemand}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {copy.venueApplyFrequencyHint}
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_venues_per_crawl">{copy.maxVenuesPerCrawl}</Label>
+                  <Input
+                    id="max_venues_per_crawl"
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={settings.max_venues_per_crawl || 50}
+                    onChange={(e) => setSettings({ ...settings, max_venues_per_crawl: parseInt(e.target.value) || 50 })}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {copy.maxVenuesPerCrawlHint}
                   </p>
                 </div>
               </CardContent>

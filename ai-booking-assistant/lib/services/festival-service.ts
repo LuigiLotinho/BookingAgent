@@ -19,6 +19,17 @@ const mapFestival = (dbFestival: any): Festival => ({
   description: dbFestival.description,
   website: dbFestival.website,
   isRelevant: dbFestival.is_relevant,
+  latitude: dbFestival.latitude,
+  longitude: dbFestival.longitude,
+  distanceKm: dbFestival.distance_km,
+  applicationUrl: dbFestival.application_url,
+  applicationPeriod: dbFestival.application_period,
+  genresDetected: dbFestival.genres_detected,
+  genreMatchScore: dbFestival.genre_match_score,
+  showcaseStatus: dbFestival.showcase_status === 'unknown' ? 'unknown' : dbFestival.showcase_status === 'true',
+  recommendation: dbFestival.recommendation,
+  explanation: dbFestival.explanation,
+  sourceUrls: dbFestival.source_urls,
 });
 
 export const festivalService = {
@@ -129,6 +140,17 @@ export const festivalService = {
       status: f.status || 'Neu',
       source: f.source || 'Keyword',
       is_relevant: f.isRelevant || false,
+      latitude: f.latitude,
+      longitude: f.longitude,
+      distance_km: f.distanceKm,
+      application_url: f.applicationUrl,
+      application_period: f.applicationPeriod,
+      genres_detected: f.genresDetected,
+      genre_match_score: f.genreMatchScore,
+      showcase_status: f.showcaseStatus === undefined ? null : f.showcaseStatus === true ? 'true' : f.showcaseStatus === false ? 'false' : 'unknown',
+      recommendation: f.recommendation,
+      explanation: f.explanation,
+      source_urls: f.sourceUrls,
     }));
 
     const { data, error } = await supabase

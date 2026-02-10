@@ -21,6 +21,7 @@ import {
   User,
   Settings,
   Zap,
+  Building2,
 } from "lucide-react"
 
 export function AppSidebar() {
@@ -31,6 +32,7 @@ export function AppSidebar() {
     DE: {
       dashboard: "Dashboard",
       festivals: "Festivals",
+      venues: "Veranstaltungsorte",
       applications: "Bewerbungen",
       profile: "Band-Profil",
       settings: "Einstellungen",
@@ -40,6 +42,7 @@ export function AppSidebar() {
     EN: {
       dashboard: "Dashboard",
       festivals: "Festivals",
+      venues: "Venues",
       applications: "Applications",
       profile: "Band Profile",
       settings: "Settings",
@@ -49,6 +52,7 @@ export function AppSidebar() {
     ES: {
       dashboard: "Panel",
       festivals: "Festivales",
+      venues: "Lugares",
       applications: "Solicitudes",
       profile: "Perfil de la Banda",
       settings: "Ajustes",
@@ -60,6 +64,7 @@ export function AppSidebar() {
   const navigation = [
     { name: copy.dashboard, href: "/", icon: LayoutDashboard },
     { name: copy.festivals, href: "/festivals", icon: Music },
+    { name: copy.venues, href: "/venues", icon: Building2 },
     { name: copy.applications, href: "/applications", icon: Send },
     { name: copy.profile, href: "/profile", icon: User },
     { name: copy.settings, href: "/settings", icon: Settings },

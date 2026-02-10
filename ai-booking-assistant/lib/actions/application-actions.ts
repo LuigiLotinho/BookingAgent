@@ -18,6 +18,19 @@ export async function processApplicationAction(festivalId: string) {
   }
 }
 
+/**
+ * Server Action to process a venue application.
+ * This ensures nodemailer and other node-only modules stay on the server.
+ */
+export async function processVenueApplicationAction(venueId: string) {
+  try {
+    return await applicationService.processVenueApplication(venueId);
+  } catch (error) {
+    console.error('Server Action Error:', error);
+    throw error;
+  }
+}
+
 export async function sendTestApplicationAction(language: "DE" | "EN" | "FR" | "ES") {
   try {
     const settings = await settingsService.getSettings();

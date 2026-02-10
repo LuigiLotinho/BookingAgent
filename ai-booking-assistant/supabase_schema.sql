@@ -71,12 +71,42 @@ CREATE TABLE IF NOT EXISTS band_documents (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Table for Venues
+CREATE TABLE IF NOT EXISTS venues (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  location TEXT,
+  country TEXT,
+  distance INTEGER,
+  venue_type TEXT CHECK (venue_type IN ('Club', 'Bar', 'Konzertsaal', 'Open Air', 'Theater', 'Kulturzentrum', 'Sonstiges')),
+  capacity INTEGER,
+  genres TEXT[],
+  contact_type TEXT CHECK (contact_type IN ('E-Mail', 'Formular', 'Unbekannt')),
+  contact_email TEXT,
+  website TEXT,
+  facebook_url TEXT,
+  instagram_url TEXT,
+  tiktok_url TEXT,
+  description TEXT,
+  status TEXT DEFAULT 'Neu' CHECK (status IN ('Neu', 'Freigegeben', 'Ignoriert')),
+  source TEXT, -- 'Keyword', 'Similar Band', 'Bandsintown', 'Social Media'
+  is_relevant BOOLEAN DEFAULT FALSE,
+  apply_frequency TEXT DEFAULT 'monthly' CHECK (apply_frequency IN ('monthly', 'quarterly', 'on-demand')),
+  last_applied_at TIMESTAMP WITH TIME ZONE,
+  recurring BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Table for Applications
 CREATE TABLE IF NOT EXISTS applications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   festival_id UUID REFERENCES festivals(id) ON DELETE SET NULL,
+  venue_id UUID REFERENCES venues(id) ON DELETE SET NULL,
+  target_type TEXT DEFAULT 'Festival' CHECK (target_type IN ('Festival', 'Venue')),
   festival_name TEXT, -- Denormalized for history if festival is deleted
-  year INTEGER NOT NULL,
+  venue_name TEXT, -- Denormalized for history if venue is deleted
+  year INTEGER, -- NULL for venues
   language TEXT NOT NULL,
   application_type TEXT,
   status TEXT DEFAULT 'Wartend' CHECK (status IN ('Wartend', 'Vorgeschrieben', 'Gesendet', 'Fehler')),
@@ -98,6 +128,7 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_festivals_updated_at BEFORE UPDATE ON festivals FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON venues FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_band_materials_updated_at BEFORE UPDATE ON band_materials FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
 -- Table for Settings
@@ -112,6 +143,9 @@ CREATE TABLE IF NOT EXISTS settings (
   notify_errors BOOLEAN DEFAULT TRUE,
   max_per_month INTEGER DEFAULT 50,
   max_per_day INTEGER DEFAULT 5,
+  enable_venue_crawling BOOLEAN DEFAULT TRUE,
+  venue_apply_frequency TEXT DEFAULT 'monthly' CHECK (venue_apply_frequency IN ('monthly', 'quarterly', 'on-demand')),
+  max_venues_per_crawl INTEGER DEFAULT 50,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

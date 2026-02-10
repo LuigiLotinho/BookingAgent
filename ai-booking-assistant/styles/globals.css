@@ -123,3 +123,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes crawler-progress {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+}
+
+.crawler-progress-bar {
+  width: 40%;
+  animation: crawler-progress 2s ease-in-out infinite;
+}
+
+.crawler-step-dot-delay-1 {
+  animation-delay: 0.2s;
+}
+
+.crawler-step-dot-delay-2 {
+  animation-delay: 0.4s;
+}
