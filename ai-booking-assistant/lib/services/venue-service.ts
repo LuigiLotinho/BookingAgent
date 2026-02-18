@@ -20,6 +20,7 @@ const mapVenue = (dbVenue: any): Venue => ({
   description: dbVenue.description,
   status: dbVenue.status,
   source: dbVenue.source,
+  sourceDetail: dbVenue.source_detail,
   isRelevant: dbVenue.is_relevant,
   applyFrequency: dbVenue.apply_frequency || 'monthly',
   lastAppliedAt: dbVenue.last_applied_at,
@@ -128,6 +129,7 @@ export const venueService = {
       description: v.description,
       status: v.status || 'Neu',
       source: v.source || 'Keyword',
+      source_detail: v.sourceDetail ?? null,
       is_relevant: v.isRelevant || false,
       apply_frequency: v.applyFrequency || 'monthly',
       recurring: v.recurring ?? true,
@@ -144,6 +146,33 @@ export const venueService = {
     }
 
     return (data || []).map(mapVenue);
+  },
+
+  /**
+   * Find venue by name and location (for dedup when merging similar_bands).
+   */
+  async findByNameAndLocation(name: string, location: string, country: string): Promise<Venue | null> {
+    const { data, error } = await supabase
+      .from('venues')
+      .select('*')
+      .ilike('name', name.trim())
+      .ilike('location', location.trim())
+      .ilike('country', country.trim())
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapVenue(data);
+  },
+
+  /**
+   * Append text to source_detail.
+   */
+  async appendSourceDetail(id: string, additionalDetail: string): Promise<boolean> {
+    const { data: row } = await supabase.from('venues').select('source_detail').eq('id', id).single();
+    const current = (row?.source_detail as string) || '';
+    const newDetail = current ? `${current}; ${additionalDetail}` : additionalDetail;
+    const { error } = await supabase.from('venues').update({ source_detail: newDetail }).eq('id', id);
+    return !error;
   },
 
   /**

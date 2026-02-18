@@ -30,6 +30,7 @@ const mapFestival = (dbFestival: any): Festival => ({
   recommendation: dbFestival.recommendation,
   explanation: dbFestival.explanation,
   sourceUrls: dbFestival.source_urls,
+  sourceDetail: dbFestival.source_detail,
 });
 
 export const festivalService = {
@@ -124,45 +125,106 @@ export const festivalService = {
    * Add multiple festivals (used by the research agent)
    */
   async addFestivals(festivals: Partial<Festival>[]) {
-    const payloads = festivals.map(f => ({
-      name: f.name,
-      location: f.location,
-      country: f.country,
-      distance: f.distance,
-      date_start: f.dateStart,
-      date_end: f.dateEnd,
-      size: f.size,
-      genres: f.genres,
-      contact_type: f.contactType || 'Unbekannt',
-      contact_email: f.contactEmail,
-      website: f.website,
-      description: f.description,
-      status: f.status || 'Neu',
-      source: f.source || 'Keyword',
-      is_relevant: f.isRelevant || false,
-      latitude: f.latitude,
-      longitude: f.longitude,
-      distance_km: f.distanceKm,
-      application_url: f.applicationUrl,
-      application_period: f.applicationPeriod,
-      genres_detected: f.genresDetected,
-      genre_match_score: f.genreMatchScore,
-      showcase_status: f.showcaseStatus === undefined ? null : f.showcaseStatus === true ? 'true' : f.showcaseStatus === false ? 'false' : 'unknown',
-      recommendation: f.recommendation,
-      explanation: f.explanation,
-      source_urls: f.sourceUrls,
-    }));
+    const results: Festival[] = [];
 
-    const { data, error } = await supabase
-      .from('festivals')
-      .upsert(payloads, { onConflict: 'name,date_start' })
-      .select();
+    for (const f of festivals) {
+      const payload = {
+        name: f.name,
+        location: f.location,
+        country: f.country,
+        distance: f.distance,
+        date_start: f.dateStart,
+        date_end: f.dateEnd,
+        size: f.size,
+        genres: f.genres,
+        contact_type: f.contactType || 'Unbekannt',
+        contact_email: f.contactEmail,
+        website: f.website,
+        description: f.description,
+        status: f.status || 'Neu',
+        source: f.source || 'Keyword',
+        is_relevant: f.isRelevant || false,
+        latitude: f.latitude,
+        longitude: f.longitude,
+        distance_km: f.distanceKm,
+        application_url: f.applicationUrl,
+        application_period: f.applicationPeriod,
+        genres_detected: f.genresDetected,
+        genre_match_score: f.genreMatchScore,
+        showcase_status: f.showcaseStatus === undefined ? null : f.showcaseStatus === true ? 'true' : f.showcaseStatus === false ? 'false' : 'unknown',
+        recommendation: f.recommendation,
+        explanation: f.explanation,
+        source_urls: f.sourceUrls,
+        source_detail: f.sourceDetail ?? null,
+      };
 
-    if (error) {
-      console.error('Error adding festivals:', error.message, error.details, error.hint);
-      return [];
+      try {
+        // If we have a website URL, check for an existing row first and update it
+        if (f.website) {
+          const { data: existing } = await supabase
+            .from('festivals')
+            .select('id')
+            .eq('website', f.website)
+            .maybeSingle();
+
+          if (existing?.id) {
+            const { data: updated, error: updateErr } = await supabase
+              .from('festivals')
+              .update(payload)
+              .eq('id', existing.id)
+              .select()
+              .single();
+            if (!updateErr && updated) {
+              results.push(mapFestival(updated));
+              continue;
+            }
+          }
+        }
+
+        // No existing row → insert
+        const { data: inserted, error: insertErr } = await supabase
+          .from('festivals')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (insertErr) {
+          console.error('Error inserting festival:', insertErr.message);
+        } else if (inserted) {
+          results.push(mapFestival(inserted));
+        }
+      } catch (err) {
+        console.error('Unexpected error in addFestivals:', err);
+      }
     }
 
-    return (data || []).map(mapFestival);
-  }
+    return results;
+  },
+
+  /**
+   * Find festival by name and location (for dedup when merging similar_bands).
+   */
+  async findByNameAndLocation(name: string, location: string, country: string): Promise<Festival | null> {
+    const { data, error } = await supabase
+      .from('festivals')
+      .select('*')
+      .ilike('name', name.trim())
+      .ilike('location', location.trim())
+      .ilike('country', country.trim())
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapFestival(data);
+  },
+
+  /**
+   * Append text to source_detail (e.g. "Auch gefunden über ähnliche Bands: X, Y").
+   */
+  async appendSourceDetail(id: string, additionalDetail: string): Promise<boolean> {
+    const { data: row } = await supabase.from('festivals').select('source_detail').eq('id', id).single();
+    const current = (row?.source_detail as string) || '';
+    const newDetail = current ? `${current}; ${additionalDetail}` : additionalDetail;
+    const { error } = await supabase.from('festivals').update({ source_detail: newDetail }).eq('id', id);
+    return !error;
+  },
 };

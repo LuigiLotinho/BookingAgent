@@ -68,7 +68,7 @@ export async function searchGoogle(
 
 /**
  * Build search queries for festivals based on genres and location.
- * Prioritizes "offizielle Website" and "Bewerbung Bands" so top results are more likely official pages.
+ * Produces a variety of query styles so Brave returns diverse result sets.
  */
 export function buildFestivalSearchQueries(
   genres: string[],
@@ -76,16 +76,27 @@ export function buildFestivalSearchQueries(
   year: number = new Date().getFullYear()
 ): string[] {
   const queries: string[] = []
+  const nextYear = year + 1
 
+  // High-priority: official pages and booking calls
   genres.forEach((genre) => {
-    queries.push(`${genre} Festival ${location} ${year} offizielle Website`)
-    queries.push(`${genre} Festival ${location} Bewerbung Bands`)
+    queries.push(`${genre} Festival ${location} ${year} site:*.de OR site:*.at OR site:*.ch`)
+    queries.push(`${genre} Festival ${location} Bandanmeldung ${year}`)
+    queries.push(`${genre} Festival ${location} Bewerbung Bands ${year}`)
+    queries.push(`${genre} Festival ${location} ${nextYear} Bands gesucht`)
   })
+
+  // Medium-priority: broader genre + location
   genres.forEach((genre) => {
     queries.push(`${genre} Festival ${location} ${year}`)
-    queries.push(`${genre} Festival ${location}`)
+    queries.push(`${genre} Musikfestival ${location}`)
+    queries.push(`${genre} Open-Air ${location} ${year}`)
   })
-  queries.push(`kleines Festival ${location} ${year}`)
+
+  // Low-priority: generic fallbacks
+  queries.push(`Musikfestival ${location} ${year} unbekannte Bands`)
+  queries.push(`kleines Festival ${location} ${year} Bewerbung`)
+  queries.push(`Indie Festival ${location} ${year}`)
 
   return queries
 }

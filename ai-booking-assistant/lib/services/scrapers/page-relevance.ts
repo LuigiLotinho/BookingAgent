@@ -85,27 +85,6 @@ const POSITIVE_KEYWORDS_VENUE = [
   'impressum',
 ]
 
-/** Begriffe, die auf Listen/Aggregatoren/Übersichten hindeuten */
-const NEGATIVE_KEYWORDS = [
-  'liste der',
-  'list of',
-  'alle festivals',
-  'übersicht',
-  'uebersicht',
-  'top 10',
-  'top 20',
-  'beste festivals',
-  'festivals in deutschland',
-  'festivals 2025',
-  'alle veranstaltungen',
-  'kalender',
-  'alle events',
-  'wiki ',
-  'wikipedia',
-  'was ist ein',
-  'definition ',
-  'meaning of',
-]
 
 function getDomain(url: string): string {
   try {
@@ -139,10 +118,6 @@ function countKeywordOccurrences(text: string, keywords: string[]): number {
   return count
 }
 
-function hasNegativeSignal(title: string, description: string, bodySnippet: string): boolean {
-  const combined = `${title} ${description} ${bodySnippet}`.toLowerCase()
-  return NEGATIVE_KEYWORDS.some((kw) => combined.includes(kw))
-}
 
 /** Domain ohne www für Vergleiche */
 function getDomainStem(url: string): string {
@@ -201,10 +176,6 @@ export function scoreFestivalRelevance(
   const bodySnippet = htmlText.slice(0, 3000)
   const combined = `${title} ${description} ${bodySnippet}`.toLowerCase()
 
-  if (hasNegativeSignal(title, description, bodySnippet)) {
-    return { score: 0, reason: 'Seite wirkt wie Liste/Übersicht/Wikipedia' }
-  }
-
   const positiveCount = countKeywordOccurrences(combined, POSITIVE_KEYWORDS_FESTIVAL)
   let score = Math.min(100, positiveCount * 12)
 
@@ -234,10 +205,6 @@ export function scoreVenueRelevance(
   const bodySnippet = htmlText.slice(0, 3000)
   const combined = `${title} ${description} ${bodySnippet}`.toLowerCase()
 
-  if (hasNegativeSignal(title, description, bodySnippet)) {
-    return { score: 0, reason: 'Seite wirkt wie Liste/Übersicht' }
-  }
-
   const positiveCount = countKeywordOccurrences(combined, POSITIVE_KEYWORDS_VENUE)
   let score = Math.min(100, positiveCount * 15)
 
@@ -252,10 +219,10 @@ export function scoreVenueRelevance(
 }
 
 /** Mindest-Score, ab dem eine Seite als „passt“ gilt (Festival). */
-const FESTIVAL_RELEVANCE_THRESHOLD = 45
+const FESTIVAL_RELEVANCE_THRESHOLD = 24
 
 /** Mindest-Score für Venue. */
-const VENUE_RELEVANCE_THRESHOLD = 40
+const VENUE_RELEVANCE_THRESHOLD = 24
 
 /**
  * Gibt true zurück, wenn die Seite als relevante Festival-Seite gilt.

@@ -42,7 +42,7 @@ import {
   Search,
 } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { formatTemplate, getFestivalSizeLabel } from "@/lib/i18n"
 
 export default function DashboardPage() {
@@ -180,6 +180,8 @@ export default function DashboardPage() {
   const [festivals, setFestivals] = useState<Festival[]>([])
   const [searching, setSearching] = useState(false)
   const [hasProfileInfo, setHasProfileInfo] = useState(false)
+  const [researchError, setResearchError] = useState<string | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const loadDashboardData = async () => {
     try {
@@ -215,23 +217,50 @@ export default function DashboardPage() {
     loadDashboardData()
   }, [])
 
-  /** Scraper/Recherche läuft nur beim Klick auf "Festivals suchen" – per Server Action (kein CORS). */
+  /** Recherche starten; Liste füllt sich live durch Polling (alle 3 s). */
   const handleRunResearch = async () => {
+    setResearchError(null)
     setSearching(true)
-    try {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1)
-      if (profiles?.[0]) {
-        const result = await runResearchAction(profiles[0].id)
-        if (!result.success && result.error) {
-          console.error("Recherche fehlgeschlagen:", result.error)
-        }
-        await loadDashboardData()
-      }
-    } catch (error) {
-      console.error("Error running research:", error)
-    } finally {
+    const { data: profiles } = await supabase.from('profiles').select('id').limit(1)
+    if (!profiles?.[0]) {
+      setResearchError(language === 'DE' ? 'Bitte zuerst unter „Band-Profil“ ein Profil anlegen.' : 'Please create a band profile first.')
       setSearching(false)
+      return
     }
+    const profileId = profiles[0].id
+
+    const poll = async () => {
+      try {
+        const [fs, vs, fests] = await Promise.all([
+          festivalService.getStats(),
+          venueService.getStats(),
+          festivalService.getNewFestivals(30),
+        ])
+        setStats({ ...fs, totalVenues: vs.totalVenues, relevantVenues: vs.relevantVenues })
+        setFestivals(fests)
+      } catch {
+        /* ignore */
+      }
+    }
+    await poll()
+    pollIntervalRef.current = setInterval(poll, 3000)
+
+    runResearchAction(profileId)
+      .then((result) => {
+        if (!result.success) setResearchError(result.error ?? (language === 'DE' ? 'Recherche fehlgeschlagen.' : 'Research failed.'))
+      })
+      .catch((err) => {
+        setResearchError(err instanceof Error ? err.message : (language === 'DE' ? 'Recherche fehlgeschlagen.' : 'Research failed.'))
+        console.error("Error running research:", err)
+      })
+      .finally(() => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        setSearching(false)
+        loadDashboardData()
+      })
   }
 
   const handleToggleRelevant = async (festivalId: string) => {
@@ -347,6 +376,11 @@ export default function DashboardPage() {
                   {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   {copy.searchFestivals}
                 </Button>
+                {researchError && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {researchError}
+                  </p>
+                )}
                 <Card className="flex flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" />

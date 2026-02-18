@@ -271,10 +271,10 @@ export function VenueDrawer({
                 <CheckCircle className="h-3.5 w-3.5 text-success" />
                 {copy.genreMatch}: {venue.genres[0]}
               </li>
-              {venue.source === "Similar Band" && (
+              {(venue.source === "Similar Band" || venue.source === "similar_bands") && (
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-3.5 w-3.5 text-success" />
-                  {copy.similarBand}
+                  {venue.sourceDetail ?? copy.similarBand}
                 </li>
               )}
             </ul>

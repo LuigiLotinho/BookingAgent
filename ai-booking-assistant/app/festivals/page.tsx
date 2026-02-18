@@ -690,7 +690,7 @@ const FestivalsPage = () => {
                                 {getStatusBadge(festival.status)}
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={festival.source === "Similar Band" ? "default" : "outline"} className="text-xs">
+                                <Badge variant={festival.source === "Similar Band" || festival.source === "similar_bands" ? "default" : "outline"} className="text-xs">
                                   {getSourceLabel(festival.source, language)}
                                 </Badge>
                                 {getSizeBadge(festival.size)}

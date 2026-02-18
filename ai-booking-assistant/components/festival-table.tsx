@@ -103,14 +103,23 @@ export function FestivalTable({
     },
   }[language]
 
-  const formatDate = (start: string, end: string) => {
+  const formatDate = (start?: string, end?: string) => {
+    if (!start) return '–'
     const startDate = new Date(start)
-    const endDate = new Date(end)
+    if (isNaN(startDate.getTime())) return '–'
+    const endDate = end ? new Date(end) : startDate
     const startDay = startDate.getDate()
     const endDay = endDate.getDate()
     const month = startDate.toLocaleDateString(locale, { month: "2-digit" })
     const year = startDate.getFullYear()
     return `${startDay}.–${endDay}.${month}.${year}`
+  }
+
+  const getRecommendationBadge = (rec?: Festival["recommendation"]) => {
+    if (!rec) return null
+    if (rec === "apply") return <Badge className="text-xs bg-green-500/20 text-green-700 hover:bg-green-500/30">✓ Bewerben</Badge>
+    if (rec === "watch") return <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500/50">~ Prüfen</Badge>
+    return <Badge variant="outline" className="text-xs text-muted-foreground">✕ Skip</Badge>
   }
 
   const getContactIcon = (type: Festival["contactType"]) => {
@@ -237,9 +246,11 @@ export function FestivalTable({
                 <TableCell>
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
-                    <span>{festival.location}, {festival.country}</span>
+                    <span>{festival.location || '–'}{festival.location && festival.country ? ', ' : ''}{festival.country}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">{festival.distance} km</div>
+                  {(festival.distanceKm ?? festival.distance) > 0 && (
+                    <div className="text-xs text-muted-foreground">{festival.distanceKm ?? festival.distance} km</div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
@@ -247,17 +258,25 @@ export function FestivalTable({
                     <span>{formatDate(festival.dateStart, festival.dateEnd)}</span>
                   </div>
                 </TableCell>
-                <TableCell>{getSizeBadge(festival.size)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {getSizeBadge(festival.size)}
+                    {getRecommendationBadge(festival.recommendation)}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {festival.genres.slice(0, 2).map((genre) => (
+                    {(festival.genresDetected && festival.genresDetected.length > 0
+                      ? festival.genresDetected.map(g => g.genre)
+                      : festival.genres
+                    ).slice(0, 2).map((genre) => (
                       <Badge key={genre} variant="secondary" className="text-xs">
                         {genre}
                       </Badge>
                     ))}
-                    {festival.genres.length > 2 && (
+                    {((festival.genresDetected?.length ?? festival.genres.length)) > 2 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{festival.genres.length - 2}
+                        +{(festival.genresDetected?.length ?? festival.genres.length) - 2}
                       </Badge>
                     )}
                   </div>
@@ -272,7 +291,7 @@ export function FestivalTable({
                 </TableCell>
                 <TableCell>{getStatusBadge(festival.status)}</TableCell>
                 <TableCell>
-                  <Badge variant={festival.source === "Similar Band" ? "default" : "outline"} className="text-xs">
+                  <Badge variant={festival.source === "Similar Band" || festival.source === "similar_bands" ? "default" : "outline"} className="text-xs">
                     {getSourceLabel(festival.source, language)}
                   </Badge>
                 </TableCell>

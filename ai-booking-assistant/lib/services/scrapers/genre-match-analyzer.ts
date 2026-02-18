@@ -15,6 +15,15 @@ export interface GenreMatchResult {
 
 const MODEL = 'gpt-4o-mini';
 
+// Singleton client to avoid creating a new instance for each parallel call
+let _openaiClient: OpenAI | null = null;
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    _openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openaiClient;
+}
+
 const SYSTEM_PROMPT = `You are an analyst for genre compatibility between a band and a festival. Your job is NOT to make a yes/no booking decision, but to produce a transparent genre match analysis.
 
 Output ONLY valid JSON, no other text.`;
@@ -71,7 +80,7 @@ export async function analyzeGenreMatch(
   if (!apiKey) return null;
 
   try {
-    const openai = new OpenAI({ apiKey });
+    const openai = getOpenAIClient();
     const content = buildPrompt(bandGenres, festivalText, lineupText, negativeGenreKeywords);
 
     const completion = await openai.chat.completions.create({
@@ -116,7 +125,8 @@ export async function analyzeGenreMatch(
 export function getRecommendation(
   redFlagsDetected: string[],
   genreMatchScore: number,
-  showcaseStatus: true | false | 'unknown'
+  showcaseStatus: true | false | 'unknown',
+  hasAiAnalysis: boolean = genreMatchScore > 0
 ): { recommendation: 'apply' | 'watch' | 'skip'; explanation: string } {
   if (redFlagsDetected.length > 0) {
     const hasPayToPlay = redFlagsDetected.some((f) => /fee|pay|sell|contest|gebühr|wettbewerb/i.test(f));
@@ -126,6 +136,10 @@ export function getRecommendation(
     if (showcaseStatus === true) {
       return { recommendation: 'watch', explanation: 'Showcase/Fee-Signale – manuell prüfen.' };
     }
+  }
+  // If there is no AI genre analysis at all, default to 'watch' (not 'skip')
+  if (!hasAiAnalysis) {
+    return { recommendation: 'watch', explanation: 'Kein Genre-Score verfügbar – bitte manuell prüfen.' };
   }
   if (genreMatchScore >= 60) {
     return { recommendation: 'apply', explanation: 'Guter Genre-Match, keine Red-Flags.' };

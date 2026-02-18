@@ -26,9 +26,8 @@ interface BandsintownEvent {
   }>
 }
 
-interface BandsintownResponse {
-  events: BandsintownEvent[]
-}
+// The Bandsintown API returns a JSON array of events directly (not a wrapped object)
+type BandsintownResponse = BandsintownEvent[] | { error?: string }
 
 /**
  * Search for events by artist name on Bandsintown
@@ -36,29 +35,46 @@ interface BandsintownResponse {
  * @param artistName Name of the artist/band
  * @returns Array of events
  */
+async function fetchBandsintownUrl(url: string): Promise<BandsintownEvent[]> {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'User-Agent': 'BandBooker-Crawler/1.0' },
+  })
+  if (!response.ok) {
+    if (response.status === 404) return []
+    throw new Error(`Bandsintown API error: ${response.status} ${response.statusText}`)
+  }
+  const data: BandsintownResponse = await response.json()
+  if (!Array.isArray(data)) return []
+  return data
+}
+
 export async function searchBandsintownEvents(artistName: string): Promise<BandsintownEvent[]> {
   try {
-    // Bandsintown API endpoint
     const encodedName = encodeURIComponent(artistName)
-    const url = `https://rest.bandsintown.com/artists/${encodedName}/events?app_id=BandBooker`
+    const baseUrl = `https://rest.bandsintown.com/artists/${encodedName}/events?app_id=BandBooker`
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'BandBooker-Crawler/1.0',
-      },
-    })
+    // Fetch upcoming + past events in parallel
+    const [upcoming, past] = await Promise.allSettled([
+      fetchBandsintownUrl(baseUrl),
+      fetchBandsintownUrl(`${baseUrl}&date=past`),
+    ])
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        // Artist not found
-        return []
+    const upcomingEvents = upcoming.status === 'fulfilled' ? upcoming.value : []
+    const pastEvents    = past.status    === 'fulfilled' ? past.value    : []
+
+    console.log(`[Bandsintown] ${artistName}: ${upcomingEvents.length} upcoming, ${pastEvents.length} past events`)
+
+    // Merge and deduplicate by event id
+    const seen = new Set<string>()
+    const all: BandsintownEvent[] = []
+    for (const ev of [...upcomingEvents, ...pastEvents]) {
+      if (!seen.has(ev.id)) {
+        seen.add(ev.id)
+        all.push(ev)
       }
-      throw new Error(`Bandsintown API error: ${response.status} ${response.statusText}`)
     }
-
-    const data: BandsintownResponse = await response.json()
-    return data.events || []
+    return all
   } catch (error) {
     console.error(`Error searching Bandsintown for ${artistName}:`, error)
     return []

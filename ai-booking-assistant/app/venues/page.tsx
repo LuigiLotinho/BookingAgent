@@ -584,7 +584,7 @@ const VenuesPage = () => {
                                 {getStatusBadge(venue.status)}
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={venue.source === "Similar Band" ? "default" : "outline"} className="text-xs">
+                                <Badge variant={venue.source === "Similar Band" || venue.source === "similar_bands" ? "default" : "outline"} className="text-xs">
                                   {getSourceLabel(venue.source, language)}
                                 </Badge>
                                 <Badge variant="outline">{getVenueTypeLabel(venue.venueType, language)}</Badge>

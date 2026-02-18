@@ -25,20 +25,47 @@ CREATE TABLE IF NOT EXISTS festivals (
   location TEXT,
   country TEXT,
   distance INTEGER,
+  distance_km FLOAT,
   date_start DATE,
   date_end DATE,
   size TEXT CHECK (size IN ('Klein', 'Mittel', 'Gross')),
   genres TEXT[],
   contact_type TEXT CHECK (contact_type IN ('E-Mail', 'Formular', 'Unbekannt')),
   contact_email TEXT,
-  website TEXT,
+  website TEXT UNIQUE,          -- used as upsert conflict key
   description TEXT,
   status TEXT DEFAULT 'Neu' CHECK (status IN ('Neu', 'Freigegeben', 'Ignoriert')),
-  source TEXT, -- 'Keyword' or 'Similar Band'
+  source TEXT,
+  source_detail TEXT,
+  source_urls TEXT[],
   is_relevant BOOLEAN DEFAULT FALSE,
+  latitude FLOAT,
+  longitude FLOAT,
+  application_url TEXT,
+  application_period TEXT,
+  genres_detected JSONB,        -- [{"genre":"Rock","confidence":"explicit"}]
+  genre_match_score FLOAT,
+  showcase_status TEXT,
+  recommendation TEXT,          -- 'apply' | 'watch' | 'skip'
+  explanation TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration helpers (run these if the table already exists without these columns):
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS distance_km FLOAT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS source_detail TEXT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS source_urls TEXT[];
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS latitude FLOAT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS longitude FLOAT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS application_url TEXT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS application_period TEXT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS genres_detected JSONB;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS genre_match_score FLOAT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS showcase_status TEXT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS recommendation TEXT;
+-- ALTER TABLE festivals ADD COLUMN IF NOT EXISTS explanation TEXT;
+-- CREATE UNIQUE INDEX IF NOT EXISTS festivals_website_unique ON festivals (website) WHERE website IS NOT NULL;
 
 -- Table for Band Materials (per language)
 CREATE TABLE IF NOT EXISTS band_materials (

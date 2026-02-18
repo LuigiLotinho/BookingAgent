@@ -87,8 +87,11 @@ export function getContactTypeLabel(type: string, language: LanguageCode) {
 }
 
 const sourceMap: Record<string, { DE: string; EN: string; ES: string }> = {
+  Keyword: { DE: "Keyword", EN: "Keyword", ES: "Palabra clave" },
   "Similar Band": { DE: "Aehnliche Band", EN: "Similar Band", ES: "Banda Similar" },
-  "Bandsintown": { DE: "Bandsintown", EN: "Bandsintown", ES: "Bandsintown" },
+  similar_bands: { DE: "Aehnliche Bands", EN: "Similar Bands", ES: "Bandas Similares" },
+  crawler: { DE: "Crawler", EN: "Crawler", ES: "Crawler" },
+  Bandsintown: { DE: "Bandsintown", EN: "Bandsintown", ES: "Bandsintown" },
   "Social Media": { DE: "Social Media", EN: "Social Media", ES: "Redes Sociales" },
 }
 

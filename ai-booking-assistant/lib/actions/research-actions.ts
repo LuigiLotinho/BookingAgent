@@ -10,7 +10,10 @@ import { rechercheService } from '../services/recherche-service'
 export async function runResearchAction(profileId: string) {
   try {
     const result = await rechercheService.runResearch(profileId)
-    return { success: true, ...result }
+    if (result.success === false) {
+      return { success: false, error: result.error ?? 'Recherche fehlgeschlagen' }
+    }
+    return { success: true, festivals: result.festivals ?? [], venues: result.venues ?? [] }
   } catch (error) {
     console.error('runResearchAction error:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Recherche fehlgeschlagen' }

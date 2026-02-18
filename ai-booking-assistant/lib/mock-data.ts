@@ -17,7 +17,8 @@ export interface Festival {
   contactType: "E-Mail" | "Formular" | "Unbekannt"
   contactEmail?: string
   status: "Neu" | "Freigegeben" | "Ignoriert"
-  source: "Keyword" | "Similar Band"
+  source: "Keyword" | "Similar Band" | "crawler" | "similar_bands"
+  sourceDetail?: string
   description?: string
   website?: string
   isRelevant: boolean
@@ -52,7 +53,8 @@ export interface Venue {
   tiktokUrl?: string
   description?: string
   status: "Neu" | "Freigegeben" | "Ignoriert"
-  source: "Keyword" | "Similar Band" | "Bandsintown" | "Social Media"
+  source: "Keyword" | "Similar Band" | "Bandsintown" | "Social Media" | "crawler" | "similar_bands"
+  sourceDetail?: string
   isRelevant: boolean
   applyFrequency: "monthly" | "quarterly" | "on-demand"
   lastAppliedAt?: string

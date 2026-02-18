@@ -5,6 +5,12 @@
 
 const FESTIVAL_LINK_KEYWORDS = [
   'festival',
+  'fest',
+  'open-air',
+  'openair',
+  'open air',
+  'musik',
+  'music',
   'bewerbung',
   'line-up',
   'lineup',
@@ -13,9 +19,20 @@ const FESTIVAL_LINK_KEYWORDS = [
   'homepage',
   'kontakt',
   'apply',
+  'konzert',
+  'concert',
+  'veranstaltung',
+  'event',
 ]
 
-const MAX_LINKS = 28
+/** Domains that are clearly not festival websites – skip their links */
+const LINK_BLOCKED_DOMAINS = [
+  'facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'youtube.com',
+  'tiktok.com', 'wikipedia.org', 'google.com', 'amazon.', 'ebay.',
+  'eventim.de', 'ticketmaster.', 'songkick.com', 'bandsintown.com',
+]
+
+const MAX_LINKS = 40
 
 function getDomain(url: string): string {
   try {
@@ -66,11 +83,20 @@ export function extractFestivalLinksFromListPage(
     const linkDomain = getDomain(absolute)
     if (!linkDomain || linkDomain === listDomain) continue
 
+    // Skip obviously non-festival domains
+    if (LINK_BLOCKED_DOMAINS.some((b) => linkDomain.includes(b))) continue
+
     const normalized = absolute.replace(/\/+$/, '') || absolute
     if (seen.has(normalized)) continue
     seen.add(normalized)
 
-    if (!linkTextOrContextMatches(linkContent) && !linkTextOrContextMatches(absolute)) {
+    // Accept if link text, URL, OR domain contains festival-related keyword.
+    // This is intentionally broad – the relevance check in the main loop will filter.
+    if (
+      !linkTextOrContextMatches(linkContent) &&
+      !linkTextOrContextMatches(absolute) &&
+      !linkTextOrContextMatches(linkDomain)
+    ) {
       continue
     }
 

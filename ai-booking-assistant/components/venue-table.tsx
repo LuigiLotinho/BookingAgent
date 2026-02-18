@@ -254,7 +254,7 @@ export function VenueTable({
                 </TableCell>
                 <TableCell>{getStatusBadge(venue.status)}</TableCell>
                 <TableCell>
-                  <Badge variant={venue.source === "Similar Band" ? "default" : "outline"} className="text-xs">
+                  <Badge variant={venue.source === "Similar Band" || venue.source === "similar_bands" ? "default" : "outline"} className="text-xs">
                     {getSourceLabel(venue.source, language)}
                   </Badge>
                 </TableCell>

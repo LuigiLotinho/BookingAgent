@@ -24,6 +24,8 @@ import {
   XCircle,
   Music,
   Sparkles,
+  Send,
+  TrendingUp,
 } from "lucide-react"
 
 interface FestivalDrawerProps {
@@ -54,6 +56,13 @@ export function FestivalDrawer({
       removeApproval: "Freigabe entfernen",
       markRelevant: "Als relevant markieren",
       openWebsite: "Website oeffnen",
+      applyNow: "Zur Bewerbungsseite",
+      genreMatch: "Genre-Match",
+      recommendation: "Empfehlung",
+      recApply: "Bewerben",
+      recWatch: "Manuell pruefen",
+      recSkip: "Eher ueberspringen",
+      explanation: "Analyse",
     },
     EN: {
       distance: "{distance} km away",
@@ -67,6 +76,13 @@ export function FestivalDrawer({
       removeApproval: "Remove approval",
       markRelevant: "Mark as relevant",
       openWebsite: "Open website",
+      applyNow: "Go to application page",
+      genreMatch: "Genre match",
+      recommendation: "Recommendation",
+      recApply: "Apply",
+      recWatch: "Review manually",
+      recSkip: "Rather skip",
+      explanation: "Analysis",
     },
     ES: {
       distance: "{distance} km de distancia",
@@ -80,14 +96,24 @@ export function FestivalDrawer({
       removeApproval: "Quitar aprobacion",
       markRelevant: "Marcar como relevante",
       openWebsite: "Abrir sitio web",
+      applyNow: "Ir a la pagina de solicitud",
+      genreMatch: "Compatibilidad de genero",
+      recommendation: "Recomendacion",
+      recApply: "Solicitar",
+      recWatch: "Revisar manualmente",
+      recSkip: "Omitir",
+      explanation: "Analisis",
     },
   }[language]
 
   if (!festival) return null
 
-  const formatDate = (start: string, end: string) => {
+  const formatDate = (start?: string, end?: string) => {
+    if (!start) return '–'
     const startDate = new Date(start)
-    const endDate = new Date(end)
+    if (isNaN(startDate.getTime())) return '–'
+    const endDate = end ? new Date(end) : startDate
+    if (isNaN(endDate.getTime())) return startDate.toLocaleDateString(locale)
     return `${startDate.toLocaleDateString(locale)} – ${endDate.toLocaleDateString(locale)}`
   }
 
@@ -126,10 +152,14 @@ export function FestivalDrawer({
                 <MapPin className="h-4 w-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium">{festival.location}, {festival.country}</p>
-                <p className="text-xs text-muted-foreground">
-                  {copy.distance.replace("{distance}", String(festival.distance))}
+                <p className="text-sm font-medium">
+                  {[festival.location, festival.country].filter(Boolean).join(', ') || '–'}
                 </p>
+                {(festival.distanceKm ?? festival.distance) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {copy.distance.replace("{distance}", String(festival.distanceKm ?? festival.distance))}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -180,38 +210,76 @@ export function FestivalDrawer({
               {copy.genres}
             </h4>
             <div className="flex flex-wrap gap-2">
-              {festival.genres.map((genre) => (
-                <Badge key={genre} variant="secondary">
-                  {genre}
-                </Badge>
-              ))}
+              {festival.genresDetected && festival.genresDetected.length > 0
+                ? festival.genresDetected.map((g) => (
+                    <Badge
+                      key={g.genre}
+                      variant={g.confidence === 'explicit' ? 'default' : 'secondary'}
+                      title={g.confidence === 'explicit' ? 'Explizit erkannt' : 'Implizit erkannt'}
+                    >
+                      {g.genre}
+                    </Badge>
+                  ))
+                : festival.genres.map((genre) => (
+                    <Badge key={genre} variant="secondary">
+                      {genre}
+                    </Badge>
+                  ))}
             </div>
           </div>
 
           <Separator />
 
-          {/* Why Relevant */}
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <h4 className="mb-2 text-sm font-medium flex items-center gap-2">
+          {/* AI Analysis */}
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               {copy.whyTitle}
             </h4>
-            <ul className="space-y-1.5 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-3.5 w-3.5 text-success" />
-                Genre Match: {festival.genres[0]}
-              </li>
-              {festival.source === "Similar Band" && (
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-3.5 w-3.5 text-success" />
-                  {copy.similarBand}
-                </li>
-              )}
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-3.5 w-3.5 text-success" />
-                {copy.sizeFit}
-              </li>
-            </ul>
+
+            {/* Genre Match Score */}
+            {festival.genreMatchScore != null && (
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-muted-foreground">{copy.genreMatch}:</span>
+                <div className="flex items-center gap-1.5 flex-1">
+                  <div className="h-1.5 flex-1 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${festival.genreMatchScore}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium w-8 text-right">{festival.genreMatchScore}%</span>
+                </div>
+              </div>
+            )}
+
+            {/* Recommendation */}
+            {festival.recommendation && (
+              <div className="flex items-center gap-2">
+                {festival.recommendation === "apply" && <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />}
+                {festival.recommendation === "watch" && <HelpCircle className="h-3.5 w-3.5 text-yellow-600 shrink-0" />}
+                {festival.recommendation === "skip" && <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                <span className="text-sm">
+                  {festival.recommendation === "apply" && copy.recApply}
+                  {festival.recommendation === "watch" && copy.recWatch}
+                  {festival.recommendation === "skip" && copy.recSkip}
+                </span>
+              </div>
+            )}
+
+            {/* Explanation */}
+            {festival.explanation && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{festival.explanation}</p>
+            )}
+
+            {/* Similar Band source */}
+            {(festival.source === "Similar Band" || festival.source === "similar_bands") && (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+                <span className="text-sm">{festival.sourceDetail ?? copy.similarBand}</span>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -237,14 +305,24 @@ export function FestivalDrawer({
             </Button>
           </div>
 
-          {festival.website && (
-            <Button variant="outline" className="w-full bg-transparent" asChild>
-              <a href={festival.website} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                {copy.openWebsite}
-              </a>
-            </Button>
-          )}
+          <div className="flex flex-col gap-2">
+            {festival.applicationUrl && festival.applicationUrl !== festival.website && (
+              <Button className="w-full" asChild>
+                <a href={festival.applicationUrl} target="_blank" rel="noopener noreferrer">
+                  <Send className="mr-2 h-4 w-4" />
+                  {copy.applyNow}
+                </a>
+              </Button>
+            )}
+            {festival.website && (
+              <Button variant="outline" className="w-full bg-transparent" asChild>
+                <a href={festival.website} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {copy.openWebsite}
+                </a>
+              </Button>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
